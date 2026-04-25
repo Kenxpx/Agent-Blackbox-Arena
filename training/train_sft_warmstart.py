@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
+from training.make_dataset import CHALLENGE_VARIANTS, assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
 from training.quality_gate import build_stoploss_report, fail_on_quality_errors, validate_sft_args, write_json
 from training.train_json_grpo import namespace_to_jsonable, run_heldout_generation_eval
 
@@ -40,9 +40,9 @@ def sft_completion_for_record(record: dict[str, Any]) -> list[dict[str, str]]:
     return [{"role": "assistant", "content": compact_json(record["target_json"])}]
 
 
-def build_sft_records(split: str, seeds: list[int]) -> list[dict[str, Any]]:
+def build_sft_records(split: str, seeds: list[int], prompt_variant: str = "standard") -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for record in build_records(split, seeds):
+    for record in build_records(split, seeds, prompt_variant=prompt_variant):
         assert_prompt_has_no_hidden_answers(record)
         rows.append(
             {
@@ -82,7 +82,7 @@ def run_smoke(args: argparse.Namespace) -> None:
             for record in source_records
         ]
     else:
-        records = build_sft_records("train", parse_seed_spec("0"))
+        records = build_sft_records("train", parse_seed_spec("0"), prompt_variant=args.prompt_variant)
 
     preview_path = args.output_dir / "sft_samples.jsonl"
     with preview_path.open("w", encoding="utf-8") as handle:
@@ -209,8 +209,8 @@ def run_full_sft(args: argparse.Namespace) -> None:
             "source": "training/train_sft_warmstart.py",
         },
     )
-    train_rows = build_sft_records("train", parse_seed_spec(args.train_seeds))
-    eval_rows = build_sft_records("eval", parse_seed_spec(args.eval_seeds))
+    train_rows = build_sft_records("train", parse_seed_spec(args.train_seeds), prompt_variant=args.prompt_variant)
+    eval_rows = build_sft_records("eval", parse_seed_spec(args.eval_seeds), prompt_variant=args.eval_prompt_variant)
     write_jsonl(args.output_dir / "train_sft.jsonl", train_rows)
     write_jsonl(args.output_dir / "eval_sft.jsonl", eval_rows)
 
@@ -292,6 +292,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-steps", type=int, default=20)
     parser.add_argument("--train-seeds", default="0-5")
     parser.add_argument("--eval-seeds", default="1000-1002")
+    parser.add_argument("--prompt-variant", choices=CHALLENGE_VARIANTS, default="standard")
+    parser.add_argument("--eval-prompt-variant", choices=CHALLENGE_VARIANTS, default="standard")
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=1)

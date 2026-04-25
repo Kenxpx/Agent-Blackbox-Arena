@@ -120,6 +120,47 @@ Block-everything fails because valid flows must still pass. For example, blockin
 
 Hardcoded patches fail because the verifier detects incident IDs and hidden-test probes. A patch must name general controls like `fresh_context_check`, not memorize `stale_retrieval_004`.
 
+## Generalization Discipline
+
+Perfect scores on a tiny eval are not enough. Before scaling to 1.5B or making final training claims, the repo now gates claims on:
+
+- separated train/eval seed ranges
+- prompt leakage scans
+- larger held-out evaluation over seeds such as `1000-1049`
+- challenge prompts with shuffled trace spans, rewritten surface wording, and blinded family labels
+- base vs SFT vs SFT+GRPO comparison
+- plots generated only from real model-evaluation summaries
+
+Run the audit:
+
+```bash
+python scripts/generalization_audit.py
+```
+
+Run future checkpoint evals:
+
+```bash
+python training/evaluate_checkpoint.py \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --model-label base_0_5b \
+  --eval-seeds 1000-1049 \
+  --output-dir outputs/model_eval/base_0_5b_standard
+
+python training/evaluate_checkpoint.py \
+  --model outputs/sft_qwen25_05b_json/model \
+  --model-label sft_0_5b \
+  --eval-seeds 1000-1049 \
+  --output-dir outputs/model_eval/sft_0_5b_standard
+
+python training/evaluate_checkpoint.py \
+  --model outputs/grpo_tiny_hf/model \
+  --model-label sft_grpo_0_5b \
+  --eval-seeds 1000-1049 \
+  --output-dir outputs/model_eval/sft_grpo_0_5b_standard
+```
+
+Challenge eval swaps `--prompt-variant shuffled_surface_blind`.
+
 ## Baseline Results
 
 Current table results are baseline and smoke results. The first controlled 0.5B HF run validates the strict JSON training pipeline after SFT warmup, but final trained-model comparison claims will be added only after real plots and wider held-out evidence are generated.
@@ -151,11 +192,14 @@ Training is framed as evidence for the environment: a model should improve only 
 Available scaffold files:
 
 - `training/make_dataset.py`
+- `training/evaluate_checkpoint.py`
 - `training/train_json_grpo.py`
 - `training/evaluate_model.py`
 - `training/train_sft_warmstart.py`
 - `training/quality_gate.py`
 - `scripts/training_preflight.py`
+- `scripts/generalization_audit.py`
+- `scripts/plot_model_eval.py`
 
 Smoke outputs:
 

@@ -178,6 +178,56 @@ Real SFT writes:
 
 If `stoploss_report.json` says `STOP`, do not run a bigger model. If it says `PASS` with a saturation warning, the pipeline is valid but the result should be described as format/pipeline validation, not extra GRPO learning.
 
+## Generalization Gate Before 1.5B
+
+Because the 0.5B SFT+GRPO validation is perfect on a small eval, Run 2 is blocked until the larger held-out and challenge checks are inspected.
+
+CPU audit:
+
+```bash
+python scripts/generalization_audit.py
+```
+
+Preferred standard held-out eval:
+
+```bash
+python training/evaluate_checkpoint.py \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --model-label base_0_5b \
+  --eval-seeds 1000-1049 \
+  --output-dir outputs/model_eval/base_0_5b_standard
+
+python training/evaluate_checkpoint.py \
+  --model outputs/sft_qwen25_05b_json/model \
+  --model-label sft_0_5b \
+  --eval-seeds 1000-1049 \
+  --output-dir outputs/model_eval/sft_0_5b_standard
+
+python training/evaluate_checkpoint.py \
+  --model outputs/grpo_tiny_hf/model \
+  --model-label sft_grpo_0_5b \
+  --eval-seeds 1000-1049 \
+  --output-dir outputs/model_eval/sft_grpo_0_5b_standard
+```
+
+Challenge eval uses the same script with:
+
+```bash
+--prompt-variant shuffled_surface_blind
+```
+
+Plot only after the real model-eval summaries exist:
+
+```bash
+python scripts/plot_model_eval.py \
+  --summary base=outputs/model_eval/base_0_5b_standard/summary.json \
+  --summary sft=outputs/model_eval/sft_0_5b_standard/summary.json \
+  --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_standard/summary.json \
+  --output-dir outputs/model_eval
+```
+
+Do not use oracle challenge metrics as trained-model evidence. They are verifier sanity checks only.
+
 ## Dataset Command
 
 ```bash

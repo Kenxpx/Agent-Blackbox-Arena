@@ -32,6 +32,21 @@ This means the same public trace prompt can produce different scores depending o
 | Repair Patch DSL | Forces bounded repair plans with `require`, `forbid`, `preserve`, and `rationale` fields. |
 | Agent Repair Certificate | Produces a bounded certificate only after replay, hidden regressions, and valid preservation pass. |
 
+## Research Positioning
+
+The benchmark is designed around three research lessons that elite RL reviewers care about:
+
+- **Reward hacking is expected under optimization pressure.** The reward therefore contains explicit anti-hacking checks for block-everything patches, hardcoded incident IDs, hidden-test probes, certificate-before-verifier behavior, and valid-flow overblocking.
+- **Leakage can inflate evaluation.** The training and evaluation seed ranges are separated, hidden oracle fields are never placed in prompts, and challenge prompts can blind the family label while preserving the same public trace evidence.
+- **Verifier success is not enough unless preservation is measured.** The agent must both block failed variants and preserve valid behavior before the certificate gate opens.
+
+Related references used for the training and evaluation design:
+
+- Amodei et al., "Concrete Problems in AI Safety" - reward hacking, scalable supervision, and distribution shift.
+- Google DeepMind, "Specification gaming: the flip side of AI ingenuity" - examples of systems exploiting proxy objectives.
+- Hugging Face TRL GRPO documentation - custom reward functions, grouped generations, and reward-variance diagnostics.
+- Hugging Face Transformers chat-template documentation - conversational prompt rendering for instruct models.
+
 ## Observation
 
 The public observation includes:
@@ -226,6 +241,14 @@ Training scaffold uses:
 
 Held-out reporting should never use train-seed performance as the headline.
 
+For final training evidence, use a larger held-out range before scaling models:
+
+- preferred larger eval seeds: `1000-1049`
+- minimum larger eval seeds if budget is tight: `1000-1019`
+- challenge prompt variant: `shuffled_surface_blind`
+
+Challenge prompts preserve the same public failure semantics but shuffle trace order, rewrite surface wording, and replace the public family label with `agent_reliability_failure`.
+
 ## Evaluation Metrics
 
 - overall score
@@ -235,6 +258,25 @@ Held-out reporting should never use train-seed performance as the headline.
 - invalid JSON rate
 - overblocking rate
 - hardcoded patch rate
+
+## Model-Eval Claim Gates
+
+Before making final trained-model claims, compare:
+
+- base `Qwen/Qwen2.5-0.5B-Instruct`
+- 0.5B SFT warmstart checkpoint
+- 0.5B SFT+GRPO validation checkpoint
+
+Required model-eval artifacts:
+
+- `metrics.csv`
+- `summary.json`
+- `completions.jsonl`
+- larger held-out standard eval
+- challenge eval
+- plots generated from real model-eval summaries only
+
+If GRPO reward is saturated after SFT, report it as pipeline validation, not additional RL learning.
 
 ## Baseline Policies
 

@@ -1,6 +1,6 @@
 # Final HF Training GO
 
-Decision: **GO for quality-gated evidence consolidation; conditional GO for Run 2 only after the new preflight and stop-loss artifacts are green**.
+Decision: **GO for larger 0.5B held-out and challenge evaluation; NO-GO for 1.5B until those artifacts are inspected**.
 
 The first base 0.5B T4 attempts exposed two failure modes: an invalid GRPO batch/generation config and all-invalid JSON completions. After prompt hardening and a tiny SFT format warmstart, the latest 0.5B SFT+GRPO validation completed with real logs, sampled generations, held-out verifier metrics, and a saved checkpoint. This is strong pipeline evidence, not a broad trained-improvement claim, because the GRPO phase was saturated after SFT warmup.
 
@@ -23,6 +23,8 @@ Do not let training claims replace the benchmark story. A small honest run with 
 - manual inspection of `outputs/grpo_smoke/sampled_generations.jsonl`
 - confirm the HF runtime can install `pip install -e ".[training]"`
 - confirm any real run writes `run_config.json` and `stoploss_report.json`
+- `python scripts/generalization_audit.py`
+- larger base/SFT/SFT+GRPO eval with `training/evaluate_checkpoint.py`
 
 The patched path uses conversational prompts for Qwen Instruct, a compact family-specific label set, and a small training-only JSON-format shaping reward. Benchmark claims still come only from verifier metrics: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
 
@@ -88,6 +90,7 @@ If the SFT warmstart passes held-out verifier checks, use:
 - Goal: improve hidden-regression pass rate and certificate success while preserving valid behavior
 - Status: approved only after Run 1 writes valid real logs
 - Current gate: allowed only after `training_preflight_report.json`, `stoploss_report.json`, held-out metrics, and sampled generations are inspected
+- Additional gate after perfect small eval: allowed only after standard seeds `1000-1049` and challenge variant `shuffled_surface_blind` are inspected
 
 Template:
 

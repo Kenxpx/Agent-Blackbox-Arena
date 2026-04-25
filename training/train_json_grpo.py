@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from training.evaluate_model import extract_first_json_object, mock_completion, parse_completion, score_completion, summarize
-from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
+from training.make_dataset import CHALLENGE_VARIANTS, assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
 from training.quality_gate import build_stoploss_report, fail_on_quality_errors, validate_grpo_args, write_json
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -186,8 +186,8 @@ def as_batch(value: Any, expected_len: int, name: str) -> list[Any]:
     return [value for _ in range(expected_len)]
 
 
-def build_grpo_rows(split: str, seeds: list[int]) -> list[dict[str, Any]]:
-    records = build_records(split, seeds)
+def build_grpo_rows(split: str, seeds: list[int], prompt_variant: str = "standard") -> list[dict[str, Any]]:
+    records = build_records(split, seeds, prompt_variant=prompt_variant)
     rows: list[dict[str, Any]] = []
     for record in records:
         assert_prompt_has_no_hidden_answers(record)
@@ -532,8 +532,8 @@ def run_full_grpo(args: argparse.Namespace) -> None:
     sampled_path.write_text("", encoding="utf-8")
     metric_rows: list[dict[str, Any]] = []
 
-    train_rows = build_grpo_rows("train", parse_seed_spec(args.train_seeds))
-    eval_rows = build_grpo_rows("eval", parse_seed_spec(args.eval_seeds))
+    train_rows = build_grpo_rows("train", parse_seed_spec(args.train_seeds), prompt_variant=args.prompt_variant)
+    eval_rows = build_grpo_rows("eval", parse_seed_spec(args.eval_seeds), prompt_variant=args.eval_prompt_variant)
     train_dataset = Dataset.from_list(train_rows)
     eval_dataset = Dataset.from_list(eval_rows)
 
@@ -577,6 +577,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-steps", type=int, default=20)
     parser.add_argument("--train-seeds", default="0-59")
     parser.add_argument("--eval-seeds", default="1000-1014")
+    parser.add_argument("--prompt-variant", choices=CHALLENGE_VARIANTS, default="standard")
+    parser.add_argument("--eval-prompt-variant", choices=CHALLENGE_VARIANTS, default="standard")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "grpo")
     parser.add_argument("--num-generations", type=int, default=4)
     parser.add_argument(

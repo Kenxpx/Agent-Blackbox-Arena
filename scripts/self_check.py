@@ -28,12 +28,14 @@ GRPO_SMOKE_DIR = OUTPUT_DIR / "grpo_smoke"
 EVAL_SMOKE_DIR = OUTPUT_DIR / "eval_smoke"
 SFT_SMOKE_DIR = OUTPUT_DIR / "sft_smoke"
 TRAINING_PREFLIGHT_REPORT = OUTPUT_DIR / "training_preflight_report.json"
+GENERALIZATION_AUDIT_REPORT = OUTPUT_DIR / "generalization_audit" / "leakage_audit.json"
 DOCS_REQUIRED = [
     ROOT / "README.md",
     ROOT / "BENCHMARK_SPEC.md",
     ROOT / "TRAINING.md",
     ROOT / "SAFETY.md",
     ROOT / "SUBMISSION_READY.md",
+    ROOT / "GENERALIZATION_AND_CLAIM_AUDIT.md",
     ROOT / "openenv.yaml",
     ROOT / "Dockerfile",
     ROOT / "requirements.txt",
@@ -279,6 +281,13 @@ def run_gate5_docs_and_space_checks() -> None:
     subprocess.run([sys.executable, str(ROOT / "scripts" / "space_smoke.py")], cwd=ROOT, check=True)
 
 
+def run_generalization_audit_check() -> None:
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "generalization_audit.py")], cwd=ROOT, check=True)
+    assert GENERALIZATION_AUDIT_REPORT.exists(), "generalization audit report missing"
+    report = json.loads(GENERALIZATION_AUDIT_REPORT.read_text(encoding="utf-8"))
+    assert report["status"] == "PASS"
+
+
 def main() -> int:
     final_stale_state: dict[str, Any] | None = None
     for family in IMPLEMENTED_FAMILIES:
@@ -336,6 +345,8 @@ def main() -> int:
     run_gate5_docs_and_space_checks()
     print("self_check: docs readiness ok")
     print("self_check: space smoke ok")
+    run_generalization_audit_check()
+    print("self_check: generalization audit ok")
     return 0
 
 

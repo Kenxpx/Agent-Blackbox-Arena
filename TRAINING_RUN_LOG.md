@@ -1,6 +1,6 @@
 # Training Run Log
 
-Current decision: **NO-GO for Run 2**.
+Current decision: **NO-GO for Run 2 until larger 0.5B held-out and challenge evaluation are inspected**.
 
 This log records real Hugging Face Jobs output. No fake metrics, fake plots, or trained-improvement claims are made.
 
@@ -363,3 +363,37 @@ NO-GO for README claim:
 - Do not claim 1.5B or 4B results.
 - Do not claim broad generalization beyond the reported hidden-regression/eval seeds.
 - Do not hide the earlier failed 0.5B attempt.
+
+## Generalization And Leakage Audit Gate
+
+After the successful 0.5B SFT+GRPO validation, the next risk is not raw pipeline failure. The next risk is overclaiming from a tiny held-out set or from prompts that are too easy.
+
+Added safeguards before Run 2:
+
+- `scripts/generalization_audit.py`
+- `training/evaluate_checkpoint.py`
+- `scripts/plot_model_eval.py`
+- challenge prompt variants in `training/make_dataset.py`
+- tests that challenge prompts do not leak hidden answers or incident IDs
+
+The new challenge variant `shuffled_surface_blind`:
+
+- shuffles visible trace span order
+- rewrites surface wording
+- replaces the family name with `agent_reliability_failure`
+- keeps the same root-cause candidates and allowed patch labels
+- keeps hidden variants and answer keys out of the prompt
+
+Run 2 remains blocked until base 0.5B, SFT warmstart, and SFT+GRPO checkpoints are compared on a larger held-out seed range such as `1000-1049`, plus at least one challenge variant.
+
+Safe next evidence claim, if the larger eval passes:
+
+- "Base 0.5B collapsed into invalid JSON."
+- "SFT warmstart fixed strict JSON repair-plan generation."
+- "Verifier-scored held-out eval passed on the reported standard and challenge seeds."
+
+Unsafe claim even if the larger eval passes:
+
+- "GRPO learned the task from scratch."
+- "The benchmark proves production safety."
+- "The result generalizes beyond reported seeds and challenge variants."

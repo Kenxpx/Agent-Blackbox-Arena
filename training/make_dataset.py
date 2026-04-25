@@ -15,6 +15,14 @@ from agent_blackbox.models import ALLOWED_FORBID_EFFECTS, ALLOWED_PRESERVE_CLAUS
 
 DEFAULT_TRAIN_SEEDS = "0-59"
 DEFAULT_EVAL_SEEDS = "1000-1014"
+CHALLENGE_VARIANTS = [
+    "standard",
+    "shuffled_spans",
+    "surface_reworded",
+    "blind_family",
+    "surface_reworded_blind_family",
+    "shuffled_surface_blind",
+]
 
 LABEL_GLOSSARY = {
     "fresh_context_check": "verify retrieved context freshness before a final action",
@@ -89,6 +97,46 @@ def compact_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
+def surface_rewrite(text: str) -> str:
+    replacements = [
+        ("User", "Requester"),
+        ("user", "requester"),
+        ("Agent", "Automation worker"),
+        ("agent", "automation worker"),
+        ("policy", "rules package"),
+        ("account", "workspace"),
+        ("message", "handoff note"),
+        ("tool", "capability"),
+        ("administrative", "privileged"),
+        ("action", "operation"),
+        ("requested", "asked for"),
+        ("selected", "chose"),
+        ("called", "invoked"),
+    ]
+    rewritten = text
+    for old, new in replacements:
+        rewritten = rewritten.replace(old, new)
+    return rewritten
+
+
+def normalize_prompt_variant(prompt_variant: str) -> str:
+    if prompt_variant not in CHALLENGE_VARIANTS:
+        raise ValueError(f"unknown prompt variant: {prompt_variant}; expected one of {', '.join(CHALLENGE_VARIANTS)}")
+    return prompt_variant
+
+
+def variant_has(prompt_variant: str, feature: str) -> bool:
+    if prompt_variant == "standard":
+        return False
+    if feature == "shuffle":
+        return prompt_variant in {"shuffled_spans", "shuffled_surface_blind"}
+    if feature == "rewrite":
+        return prompt_variant in {"surface_reworded", "surface_reworded_blind_family", "shuffled_surface_blind"}
+    if feature == "blind_family":
+        return prompt_variant in {"blind_family", "surface_reworded_blind_family", "shuffled_surface_blind"}
+    return False
+
+
 def candidate_labels_for_family(family: str) -> dict[str, list[str]]:
     if family not in FAMILY_CANDIDATE_LABELS:
         raise ValueError(f"unknown family for candidate labels: {family}")
@@ -107,18 +155,26 @@ def glossary_for(labels: dict[str, list[str]]) -> dict[str, str]:
     return {label: LABEL_GLOSSARY[label] for label in selected}
 
 
-def prompt_text_for_incident(family: str, seed: int) -> str:
+def prompt_text_for_incident(family: str, seed: int, prompt_variant: str = "standard") -> str:
+    prompt_variant = normalize_prompt_variant(prompt_variant)
     incident, _ = generate_incident(family=family, seed=seed)
     labels = candidate_labels_for_family(incident.family)
-    trace_lines = [
-        f"- {span['span_id']} {span['span_type']}: {span['summary']}"
-        for span in incident.public_trace()
-    ]
+    public_spans = incident.public_trace()
+    if variant_has(prompt_variant, "shuffle"):
+        public_spans = sorted(public_spans, key=lambda span: (span["span_id"] in {"s2", "s4"}, span["span_id"]), reverse=True)
+    trace_lines = []
+    for span in public_spans:
+        span_type = surface_rewrite(span["span_type"]) if variant_has(prompt_variant, "rewrite") else span["span_type"]
+        summary = surface_rewrite(span["summary"]) if variant_has(prompt_variant, "rewrite") else span["summary"]
+        trace_lines.append(f"- {span['span_id']} {span_type}: {summary}")
+    scenario = surface_rewrite(incident.scenario) if variant_has(prompt_variant, "rewrite") else incident.scenario
+    family_line = "agent_reliability_failure" if variant_has(prompt_variant, "blind_family") else incident.family
     return f"""{strict_json_instruction()}
 
 Episode:
-family: {incident.family}
-scenario: {incident.scenario}
+family: {family_line}
+prompt_variant: {prompt_variant}
+scenario: {scenario}
 
 trace:
 {chr(10).join(trace_lines)}
@@ -141,14 +197,14 @@ Now return the JSON object only.
 """
 
 
-def build_prompt(family: str, seed: int) -> list[dict[str, str]]:
+def build_prompt(family: str, seed: int, prompt_variant: str = "standard") -> list[dict[str, str]]:
     # TRL supports conversational prompt records. For Qwen Instruct models this
     # lets the trainer apply the model's chat template instead of treating the
     # instruction as raw pretraining text. The content contains only public trace
     # information and allowed labels, never hidden variants or answer keys.
     return [
         {"role": "system", "content": system_prompt()},
-        {"role": "user", "content": prompt_text_for_incident(family, seed)},
+        {"role": "user", "content": prompt_text_for_incident(family, seed, prompt_variant=prompt_variant)},
     ]
 
 
@@ -167,17 +223,20 @@ def build_target(family: str, seed: int) -> dict[str, Any]:
     }
 
 
-def build_records(split: str, seeds: Iterable[int]) -> list[dict[str, Any]]:
+def build_records(split: str, seeds: Iterable[int], prompt_variant: str = "standard") -> list[dict[str, Any]]:
+    prompt_variant = normalize_prompt_variant(prompt_variant)
     records: list[dict[str, Any]] = []
     for family in IMPLEMENTED_FAMILIES:
         for seed in seeds:
+            suffix = f"_{prompt_variant}" if prompt_variant != "standard" else ""
             records.append(
                 {
-                    "id": f"{split}_{family}_{seed:04d}",
+                    "id": f"{split}_{family}_{seed:04d}{suffix}",
                     "split": split,
                     "family": family,
                     "seed": seed,
-                    "prompt": build_prompt(family, seed),
+                    "prompt_variant": prompt_variant,
+                    "prompt": build_prompt(family, seed, prompt_variant=prompt_variant),
                     "target_json": build_target(family, seed),
                 }
             )
@@ -206,10 +265,10 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
 
 
-def make_dataset(output_dir: Path, train_seeds: list[int], eval_seeds: list[int]) -> dict[str, Any]:
+def make_dataset(output_dir: Path, train_seeds: list[int], eval_seeds: list[int], prompt_variant: str = "standard") -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    train_records = build_records("train", train_seeds)
-    eval_records = build_records("eval", eval_seeds)
+    train_records = build_records("train", train_seeds, prompt_variant=prompt_variant)
+    eval_records = build_records("eval", eval_seeds, prompt_variant=prompt_variant)
     for record in [*train_records, *eval_records]:
         assert_prompt_has_no_hidden_answers(record)
     write_jsonl(output_dir / "train.jsonl", train_records)
@@ -221,6 +280,8 @@ def make_dataset(output_dir: Path, train_seeds: list[int], eval_seeds: list[int]
         "eval_seeds": eval_seeds,
         "train_records": len(train_records),
         "eval_records": len(eval_records),
+        "prompt_variant": prompt_variant,
+        "challenge_variants": list(CHALLENGE_VARIANTS),
         "prompt_leakage_check": "passed",
     }
     (output_dir / "dataset_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -233,6 +294,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "training_dataset")
     parser.add_argument("--train-seeds", default=DEFAULT_TRAIN_SEEDS)
     parser.add_argument("--eval-seeds", default=DEFAULT_EVAL_SEEDS)
+    parser.add_argument("--prompt-variant", choices=CHALLENGE_VARIANTS, default="standard")
     return parser
 
 
@@ -240,14 +302,14 @@ def main() -> int:
     args = build_arg_parser().parse_args()
     train_seeds = parse_seed_spec("0-1" if args.smoke else args.train_seeds)
     eval_seeds = parse_seed_spec("1000" if args.smoke else args.eval_seeds)
-    summary = make_dataset(args.output_dir, train_seeds, eval_seeds)
+    summary = make_dataset(args.output_dir, train_seeds, eval_seeds, prompt_variant=args.prompt_variant)
     print(f"make_dataset: wrote {args.output_dir / 'train.jsonl'}")
     print(f"make_dataset: wrote {args.output_dir / 'eval.jsonl'}")
     print(f"make_dataset: wrote {args.output_dir / 'dataset_summary.json'}")
     print(
         "make_dataset: "
         f"train_records={summary['train_records']} eval_records={summary['eval_records']} "
-        f"families={','.join(summary['families'])}"
+        f"families={','.join(summary['families'])} prompt_variant={summary['prompt_variant']}"
     )
     return 0
 
