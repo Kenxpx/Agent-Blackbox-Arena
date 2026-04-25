@@ -23,6 +23,10 @@ def load_jsonl(path: Path) -> list[dict]:
     return records
 
 
+def prompt_char_count(prompt: object) -> int:
+    return len(json.dumps(prompt, ensure_ascii=False)) if not isinstance(prompt, str) else len(prompt)
+
+
 def run_smoke(args: argparse.Namespace) -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     if args.dataset:
@@ -36,7 +40,7 @@ def run_smoke(args: argparse.Namespace) -> None:
                 json.dumps(
                     {
                         "id": record["id"],
-                        "prompt_chars": len(record["prompt"]),
+                        "prompt_chars": prompt_char_count(record["prompt"]),
                         "target": record["target_json"],
                     },
                     sort_keys=True,

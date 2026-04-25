@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from training.evaluate_model import mock_completion, parse_completion, score_completion, summarize
+from training.evaluate_model import extract_first_json_object, mock_completion, parse_completion, score_completion, summarize
 from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -24,6 +24,8 @@ METRIC_FIELDNAMES = [
     "family",
     "seed",
     "reward",
+    "format_reward",
+    "training_reward",
     "overall_score",
     "certificate_success",
     "hidden_regression_pass_rate",
@@ -37,6 +39,41 @@ METRIC_FIELDNAMES = [
 
 def verifier_reward(family: str, seed: int, completion: str) -> float:
     return float(score_completion(family, seed, completion)["overall_score"])
+
+
+def json_format_score(completion: str) -> float:
+    """Small training-only shaping signal for strict JSON before verifier reward is reachable."""
+    parsed, _ = parse_completion(completion)
+    if parsed is not None:
+        return 1.0
+
+    text = completion.strip()
+    if not text:
+        return 0.0
+
+    score = 0.0
+    if text.startswith("{"):
+        score += 0.10
+    if text.endswith("}"):
+        score += 0.05
+    if "```" not in text:
+        score += 0.05
+
+    candidate = extract_first_json_object(text)
+    if candidate is not None:
+        try:
+            value = json.loads(candidate)
+        except json.JSONDecodeError:
+            value = None
+        if isinstance(value, dict):
+            score += 0.20
+            required_keys = ["evidence_spans", "root_cause", "patch", "regression_tests", "rationale"]
+            score += 0.05 * sum(1 for key in required_keys if key in value)
+            patch = value.get("patch")
+            if isinstance(patch, dict):
+                score += 0.05 * sum(1 for key in ["require", "forbid", "preserve"] if key in patch)
+
+    return round(min(score, 0.95), 4)
 
 
 def run_smoke(args: argparse.Namespace) -> None:
@@ -57,6 +94,8 @@ def run_smoke(args: argparse.Namespace) -> None:
             completion = mock_completion(family, seed, mode)
             parsed, error = parse_completion(completion)
             metrics = score_completion(family, seed, completion)
+            format_reward = json_format_score(completion)
+            training_reward = float(metrics["overall_score"]) + args.format_reward_weight * format_reward
             samples.append(
                 {
                     "step": step,
@@ -68,6 +107,9 @@ def run_smoke(args: argparse.Namespace) -> None:
                     "parse_ok": parsed is not None,
                     "parse_error": error,
                     "reward": metrics["overall_score"],
+                    "format_reward": format_reward,
+                    "training_reward": training_reward,
+                    "overall_score": metrics["overall_score"],
                 }
             )
             metric_rows.append(
@@ -77,6 +119,9 @@ def run_smoke(args: argparse.Namespace) -> None:
                     "seed": seed,
                     "mode": mode,
                     "reward": metrics["overall_score"],
+                    "format_reward": format_reward,
+                    "training_reward": training_reward,
+                    "overall_score": metrics["overall_score"],
                     "invalid_json": metrics["invalid_json"],
                     "certificate_success": metrics["certificate_success"],
                     "hidden_regression_pass_rate": metrics["hidden_regression_pass_rate"],
@@ -106,7 +151,7 @@ def run_smoke(args: argparse.Namespace) -> None:
         "max_steps": args.max_steps,
         "num_generations": args.num_generations,
         "full_grpo_ran": False,
-        "note": "Smoke mode tests parser and verifier reward only. It does not run TRL training.",
+        "note": "Smoke mode tests parser, verifier reward, and JSON-format shaping only. It does not run TRL training.",
     }
     summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
@@ -156,7 +201,7 @@ def build_grpo_rows(split: str, seeds: list[int]) -> list[dict[str, Any]]:
     return rows
 
 
-def make_verifier_reward_func(sampled_path: Path, metric_rows: list[dict[str, Any]]):
+def make_verifier_reward_func(sampled_path: Path, metric_rows: list[dict[str, Any]], format_reward_weight: float):
     reward_call = 0
 
     def reward_func(*reward_args: Any, **kwargs: Any) -> list[float]:
@@ -183,16 +228,20 @@ def make_verifier_reward_func(sampled_path: Path, metric_rows: list[dict[str, An
                 completion = completion_to_text(raw_completion)
                 parsed, parse_error = parse_completion(completion)
                 metrics = score_completion(family, seed, completion)
-                reward = float(metrics["overall_score"])
-                rewards.append(reward)
+                verifier_score = float(metrics["overall_score"])
+                format_reward = json_format_score(completion)
+                training_reward = verifier_score + format_reward_weight * format_reward
+                rewards.append(training_reward)
                 row = {
                     "reward_call": reward_call,
                     "sample_index": sample_index,
                     "prompt_id": str(prompt_ids[sample_index]),
                     "family": family,
                     "seed": seed,
-                    "reward": reward,
-                    "overall_score": reward,
+                    "reward": verifier_score,
+                    "format_reward": format_reward,
+                    "training_reward": training_reward,
+                    "overall_score": verifier_score,
                     "certificate_success": metrics["certificate_success"],
                     "hidden_regression_pass_rate": metrics["hidden_regression_pass_rate"],
                     "valid_preservation_rate": metrics["valid_preservation_rate"],
@@ -217,6 +266,21 @@ def make_verifier_reward_func(sampled_path: Path, metric_rows: list[dict[str, An
         return rewards
 
     return reward_func
+
+
+def render_prompt_for_generation(tokenizer: Any, prompt: Any) -> str:
+    if isinstance(prompt, list):
+        try:
+            return tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+        except Exception:
+            lines: list[str] = []
+            for message in prompt:
+                if isinstance(message, dict):
+                    lines.append(f"{message.get('role', 'user')}: {message.get('content', '')}")
+                else:
+                    lines.append(str(message))
+            return "\n".join(lines) + "\nassistant:"
+    return str(prompt)
 
 
 def write_training_metrics(output_dir: Path, metric_rows: list[dict[str, Any]], trainer_metrics: dict[str, Any]) -> None:
@@ -323,7 +387,8 @@ def run_heldout_generation_eval(model: Any, tokenizer: Any, eval_rows: list[dict
 
     with heldout_path.open("w", encoding="utf-8") as handle:
         for row in eval_rows:
-            inputs = tokenizer(row["prompt"], return_tensors="pt", truncation=True, max_length=args.max_prompt_length)
+            prompt_text = render_prompt_for_generation(tokenizer, row["prompt"])
+            inputs = tokenizer(prompt_text, return_tensors="pt", truncation=True, max_length=args.max_prompt_length)
             inputs = {key: value.to(device) for key, value in inputs.items()}
             input_length = int(inputs["input_ids"].shape[-1])
             with torch.no_grad():
@@ -416,7 +481,7 @@ def run_full_grpo(args: argparse.Namespace) -> None:
         model.config.pad_token_id = tokenizer.pad_token_id
     model = maybe_apply_lora(model, args)
 
-    reward_func = make_verifier_reward_func(sampled_path, metric_rows)
+    reward_func = make_verifier_reward_func(sampled_path, metric_rows, args.format_reward_weight)
     config = build_grpo_config(GRPOConfig, args)
     trainer = make_trainer(GRPOTrainer, model, tokenizer, reward_func, config, train_dataset, eval_dataset)
     train_result = trainer.train()
@@ -448,6 +513,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
     parser.add_argument("--max-prompt-length", type=int, default=1024)
     parser.add_argument("--max-completion-length", type=int, default=160)
+    parser.add_argument(
+        "--format-reward-weight",
+        type=float,
+        default=0.2,
+        help=(
+            "Training-only JSON-format shaping weight. Core verifier metrics still use overall_score, "
+            "certificate success, hidden regression, and valid preservation."
+        ),
+    )
     parser.add_argument("--logging-steps", type=int, default=1)
     parser.add_argument("--save-steps", type=int, default=20)
     parser.add_argument("--bf16", action="store_true")

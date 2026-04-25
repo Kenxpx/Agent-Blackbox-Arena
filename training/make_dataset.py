@@ -54,15 +54,20 @@ def example_json() -> dict[str, Any]:
     }
 
 
-def build_prompt(family: str, seed: int) -> str:
+def system_prompt() -> str:
+    return (
+        "You are Agent BlackBox JSON Repair Planner. "
+        "You output one strict JSON object for an agent reliability repair plan."
+    )
+
+
+def prompt_text_for_incident(family: str, seed: int) -> str:
     incident, _ = generate_incident(family=family, seed=seed)
     trace_lines = [
         f"- {span['span_id']} {span['span_type']}: {span['summary']}"
         for span in incident.public_trace()
     ]
-    prompt = f"""You are Agent BlackBox JSON Repair Planner.
-
-{strict_json_instruction()}
+    return f"""{strict_json_instruction()}
 
 JSON schema:
 {{
@@ -95,9 +100,17 @@ allowed_preserve: {json.dumps(list(ALLOWED_PRESERVE_CLAUSES))}
 
 Now return the JSON object only.
 """
-    # This prompt intentionally contains only public trace information and allowed labels.
-    # It does not include oracle fields, hidden variants, expected patches, or answer keys.
-    return prompt
+
+
+def build_prompt(family: str, seed: int) -> list[dict[str, str]]:
+    # TRL supports conversational prompt records. For Qwen Instruct models this
+    # lets the trainer apply the model's chat template instead of treating the
+    # instruction as raw pretraining text. The content contains only public trace
+    # information and allowed labels, never hidden variants or answer keys.
+    return [
+        {"role": "system", "content": system_prompt()},
+        {"role": "user", "content": prompt_text_for_incident(family, seed)},
+    ]
 
 
 def build_target(family: str, seed: int) -> dict[str, Any]:
@@ -133,7 +146,7 @@ def build_records(split: str, seeds: Iterable[int]) -> list[dict[str, Any]]:
 
 
 def assert_prompt_has_no_hidden_answers(record: dict[str, Any]) -> None:
-    prompt = record["prompt"]
+    prompt = json.dumps(record["prompt"], ensure_ascii=False)
     forbidden_terms = [
         "hidden_regression_variants",
         "hidden_valid_variants",

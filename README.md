@@ -229,10 +229,11 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 5e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 10
 ```
 
-The non-smoke path is guarded by `--confirm-real-training`. It uses real model completions scored by the deterministic verifier, then writes `metrics.csv`, `summary.json`, and `sampled_generations.jsonl`.
+The non-smoke path is guarded by `--confirm-real-training`. It uses real model completions scored by the deterministic verifier, with a small training-only JSON-format shaping signal so GRPO is not stuck on all-invalid completions. Reported benchmark claims must come from verifier metrics only: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
 
 ## Hugging Face Space
 

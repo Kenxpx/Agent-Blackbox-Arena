@@ -1,8 +1,8 @@
 # Final HF Training GO
 
-Decision: **GO for Run 1 only**.
+Decision: **GO for a patched Run 1 rerun only**.
 
-No real training has been run yet. No GPU has been used. No Hugging Face credit has been spent. Current results are baseline and smoke results only.
+One real 0.5B T4 attempt completed, but it failed quality stop-loss because invalid JSON remained too high and verifier reward stayed at zero. Current results are baseline, smoke, and negative Run 1 diagnostics only; no trained improvement is claimed.
 
 ## Framing
 
@@ -22,6 +22,8 @@ Do not let training claims replace the benchmark story. A small honest run with 
 - manual inspection of `outputs/grpo_smoke/sampled_generations.jsonl`
 - confirm the HF runtime can install `pip install -e ".[training]"`
 
+The patched Run 1 path uses conversational prompts for Qwen Instruct and a small training-only JSON-format shaping reward. Benchmark claims still come only from verifier metrics: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
+
 ## Model Ladder
 
 ### Run 1 - Pipeline Validation
@@ -30,7 +32,7 @@ Do not let training claims replace the benchmark story. A small honest run with 
 - Hardware: T4-small first
 - Goal: prove deterministic verifier reward, strict JSON parsing, sampled generation logging, CSV/JSON metrics, held-out evaluation, and checkpoint saving
 - Budget posture: spend the smallest useful amount
-- Status: approved as the first real run
+- Status: approved as the first patched rerun only; Run 2 is still blocked
 
 Command:
 
@@ -49,6 +51,7 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 5e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 10
 ```
 
@@ -75,6 +78,7 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 5e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 20 \
   --use-lora \
   --lora-r 8 \
@@ -113,6 +117,7 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 3e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 20 \
   --use-lora \
   --lora-r 8 \

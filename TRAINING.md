@@ -101,6 +101,15 @@ python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke
 
 The smoke path tests parser, verifier reward, metrics logging, and sampled generation logging. It does not run full TRL training.
 
+After the first HF T4 attempt, the training path was hardened for Qwen Instruct models:
+
+- dataset prompts now use TRL's conversational message format so the model chat template is applied
+- held-out generation uses the same chat template as training
+- GRPO uses the deterministic verifier score plus a small training-only JSON-format shaping signal
+- official metrics still report verifier `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding separately
+
+The format shaping reward exists only to escape the all-invalid-JSON cold start. It is not an environment score and must not be reported as benchmark improvement.
+
 ## Dataset Command
 
 ```bash
@@ -133,6 +142,7 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 5e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 10
 ```
 
@@ -164,6 +174,7 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 5e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 20 \
   --use-lora \
   --lora-r 8 \
@@ -190,6 +201,7 @@ python training/train_json_grpo.py \
   --gradient-accumulation-steps 1 \
   --learning-rate 3e-6 \
   --max-completion-length 160 \
+  --format-reward-weight 0.2 \
   --save-steps 20 \
   --use-lora \
   --lora-r 8 \

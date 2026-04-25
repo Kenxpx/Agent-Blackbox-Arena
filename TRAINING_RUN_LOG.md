@@ -166,6 +166,25 @@ Recommended next step is a CPU-only training-format fix:
 3. Add a pre-GRPO zero-shot evaluation command to measure valid JSON rate before paid training.
 4. Only rerun 0.5B after zero-shot/sample outputs contain valid JSON at a usable rate.
 
+## Post-Run Research And Patch
+
+Official TRL documentation says `GRPOTrainer` datasets must include a `prompt` column and can use either plain text or conversational message format. The same docs show custom reward functions and format rewards can be used with GRPO. That explains the failure pattern:
+
+- The Qwen Instruct model was being trained from raw plain-text prompts instead of structured chat messages.
+- The verifier reward stayed at zero because most generations were invalid JSON, so GRPO had no useful relative ranking signal.
+- Trainer loss stayed at `0.0`, consistent with all sampled rewards being equal or unusable.
+- Completion samples were often prose, markdown, non-English text, malformed JSON, or truncated JSON.
+
+Patch applied after this diagnosis:
+
+- Convert training prompts to conversational messages so TRL can apply the model chat template.
+- Render held-out generation prompts with the same chat template.
+- Add a small training-only JSON-format shaping reward to escape the all-invalid cold start.
+- Keep the deterministic verifier and benchmark metrics unchanged.
+- Keep invalid JSON, certificate success, hidden regression, valid preservation, overblocking, and hardcoding logged separately.
+
+Next GPU action remains a patched 0.5B rerun only. Run 2 is still blocked until the patched Run 1 produces valid JSON, nonzero verifier reward, and held-out metrics.
+
 ## README Claim Decision
 
 GO for README claim:
