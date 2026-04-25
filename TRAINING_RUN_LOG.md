@@ -208,3 +208,158 @@ NO-GO for README claim:
 - Any certificate improvement.
 - Any robust generalization improvement.
 - Any 1.5B or 4B result.
+
+## Patched 0.5B Rerun
+
+Current decision: **0.5B rerun succeeded; Run 2 is unblocked but not started**.
+
+Relevant new jobs:
+
+| Job ID | Flavor | Status | Diagnosis |
+|---|---|---|---|
+| `69ed1880d2c8bd8662bce4e5` | `cpu-basic` | `COMPLETED` | Fresh HF runtime passed GRPO smoke, SFT smoke, self_check, Space smoke, and `36 passed`. |
+| `69ed18e7d2c8bd8662bce4f2` | `t4-small` | `COMPLETED` | Tiny 0.5B SFT format warmstart succeeded; held-out verifier metrics were perfect on 9 eval episodes. |
+| `69ed1a3ed2c8bd8662bce516` | `t4-small` | `COMPLETED` | Combined tiny SFT warmstart followed by 0.5B GRPO validation succeeded. |
+
+### CPU Smoke
+
+Fresh HF runtime command passed:
+
+```text
+python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke
+python training/train_sft_warmstart.py --smoke --output-dir outputs/sft_smoke
+python scripts/self_check.py
+python -m pytest
+```
+
+Result:
+
+```text
+pytest: 36 passed
+GRPO smoke invalid_json_rate: 0.2000
+self_check: passed
+space_smoke: passed
+```
+
+### 0.5B SFT Format Warmstart
+
+Model: `Qwen/Qwen2.5-0.5B-Instruct`
+
+Hardware: `t4-small`
+
+Train records: `18`
+
+Eval records: `9`
+
+Max steps: `30`
+
+Trainer metrics:
+
+```json
+{
+  "train_loss": 0.19936987646312143,
+  "train_runtime": 34.4061,
+  "train_samples_per_second": 0.872,
+  "train_steps_per_second": 0.872
+}
+```
+
+Held-out verifier summary:
+
+```json
+{
+  "episodes": 9,
+  "overall_score": 1.0,
+  "certificate_success_rate": 1.0,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_preservation_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+Diagnosis:
+
+- The SFT warmstart fixed the invalid JSON failure.
+- The model emitted strict JSON on held-out eval seeds.
+- The outputs used correct family-specific controls.
+- No hardcoded incident IDs appeared in the reported held-out completions.
+- This is valid formatting/training evidence, but SFT alone is not the final RL claim.
+
+### 0.5B GRPO After SFT
+
+Model: `outputs/sft_qwen25_05b_json/model`
+
+Hardware: `t4-small`
+
+Max steps: `10`
+
+Train seeds: `0-2`
+
+Eval seed: `1000`
+
+Samples scored: `20`
+
+Verifier summary:
+
+```json
+{
+  "episodes": 20,
+  "overall_score": 1.0,
+  "certificate_success_rate": 1.0,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_preservation_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+Held-out verifier summary:
+
+```json
+{
+  "episodes": 3,
+  "overall_score": 1.0,
+  "certificate_success_rate": 1.0,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_preservation_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+Trainer metrics:
+
+```json
+{
+  "train_loss": 0.0,
+  "train_runtime": 50.4753,
+  "train_samples_per_second": 0.396,
+  "train_steps_per_second": 0.198
+}
+```
+
+Important caveat:
+
+- GRPO reward was already saturated from the SFT checkpoint: `reward=1.2`, `reward_std=0`, and `frac_reward_zero_std=1`.
+- This means the GRPO stage validates real model completions, deterministic verifier scoring, metric writing, sampled generation logging, and held-out evaluation.
+- It does **not** prove additional GRPO learning beyond the SFT warmstart, because the warmstarted model was already producing verifier-perfect completions.
+
+### Updated README Claim Decision
+
+GO for README claim:
+
+- "The first unassisted 0.5B GRPO attempt failed due to invalid JSON collapse."
+- "A guarded 0.5B SFT format warmstart fixed the JSON bottleneck."
+- "A verifier-scored 0.5B GRPO validation run produced strict JSON repair plans with `overall_score=1.0`, `certificate_success_rate=1.0`, `hidden_regression_pass_rate=1.0`, and `invalid_json_rate=0.0` on the reported held-out eval."
+- "GRPO did not add measurable improvement after SFT because reward was saturated."
+
+NO-GO for README claim:
+
+- Do not claim GRPO alone solved the task from the base model.
+- Do not claim 1.5B or 4B results.
+- Do not claim broad generalization beyond the reported hidden-regression/eval seeds.
+- Do not hide the earlier failed 0.5B attempt.
