@@ -48,7 +48,7 @@ def run_smoke(args: argparse.Namespace) -> None:
 
     samples: list[dict[str, Any]] = []
     metric_rows: list[dict[str, Any]] = []
-    completion_modes = ["oracle", "invalid_json", "block_everything", "hardcoded"]
+    completion_modes = ["oracle", "invalid_json", "wrapped_json", "block_everything", "hardcoded"]
 
     for step, record in enumerate(records[:3]):
         family = record["family"]
@@ -83,6 +83,7 @@ def run_smoke(args: argparse.Namespace) -> None:
                     "valid_preservation_rate": metrics["valid_preservation_rate"],
                     "overblocking": metrics["overblocking"],
                     "hardcoded_patch": metrics["hardcoded_patch"],
+                    "parse_error": error or metrics.get("error", ""),
                 }
             )
 
@@ -94,6 +95,9 @@ def run_smoke(args: argparse.Namespace) -> None:
         writer.writeheader()
         writer.writerows(metric_rows)
     invalid_json_rate = sum(row["invalid_json"] for row in metric_rows) / len(metric_rows)
+    wrapped_rows = [row for row in metric_rows if row["mode"] == "wrapped_json"]
+    if not wrapped_rows or any(row["invalid_json"] for row in wrapped_rows):
+        raise AssertionError("Smoke parser failed to extract wrapped valid JSON completions.")
     summary = {
         "mode": "smoke",
         "model": args.model,
@@ -443,7 +447,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
     parser.add_argument("--max-prompt-length", type=int, default=1024)
-    parser.add_argument("--max-completion-length", type=int, default=256)
+    parser.add_argument("--max-completion-length", type=int, default=160)
     parser.add_argument("--logging-steps", type=int, default=1)
     parser.add_argument("--save-steps", type=int, default=20)
     parser.add_argument("--bf16", action="store_true")

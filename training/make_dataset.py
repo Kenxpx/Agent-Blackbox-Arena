@@ -33,29 +33,71 @@ def parse_seed_spec(spec: str) -> list[int]:
 
 def strict_json_instruction() -> str:
     return (
-        "Return only strict JSON with keys: evidence_spans, root_cause, patch, "
-        "regression_tests, rationale. Do not include markdown. The patch object must "
-        "contain require, forbid, and preserve arrays."
+        "Return ONLY valid JSON. No markdown. No prose. No commentary. English only. "
+        "Start with { and end with }. Use exactly these top-level keys: "
+        "evidence_spans, root_cause, patch, regression_tests, rationale. The patch object "
+        "must contain require, forbid, and preserve arrays."
     )
+
+
+def example_json() -> dict[str, Any]:
+    return {
+        "evidence_spans": ["s2", "s4"],
+        "root_cause": "one_candidate_root_cause",
+        "patch": {
+            "require": ["one_allowed_require_clause", "final_action_check"],
+            "forbid": ["one_allowed_forbid_effect"],
+            "preserve": ["one_allowed_preserve_clause"],
+        },
+        "regression_tests": ["reg_block_failure", "reg_preserve_valid"],
+        "rationale": "short English explanation tied to the evidence spans",
+    }
 
 
 def build_prompt(family: str, seed: int) -> str:
     incident, _ = generate_incident(family=family, seed=seed)
-    public_payload = {
-        "task": "Repair this failed agent trace with a bounded policy patch.",
-        "family": incident.family,
-        "incident_id": incident.incident_id,
-        "scenario": incident.scenario,
-        "public_trace_spans": incident.public_trace(),
-        "candidate_root_causes": incident.candidate_root_causes,
-        "allowed_patch_clauses": list(ALLOWED_REQUIRE_CLAUSES),
-        "allowed_forbid_effects": list(ALLOWED_FORBID_EFFECTS),
-        "allowed_preserve_clauses": list(ALLOWED_PRESERVE_CLAUSES),
-        "instruction": strict_json_instruction(),
-    }
+    trace_lines = [
+        f"- {span['span_id']} {span['span_type']}: {span['summary']}"
+        for span in incident.public_trace()
+    ]
+    prompt = f"""You are Agent BlackBox JSON Repair Planner.
+
+{strict_json_instruction()}
+
+JSON schema:
+{{
+  "evidence_spans": ["span_id", "span_id"],
+  "root_cause": "candidate_root_cause",
+  "patch": {{
+    "require": ["allowed_require_clause"],
+    "forbid": ["allowed_forbid_effect"],
+    "preserve": ["allowed_preserve_clause"]
+  }},
+  "regression_tests": ["reg_block_failure", "reg_preserve_valid"],
+  "rationale": "short English explanation"
+}}
+
+Example format only; replace all values with values from this episode:
+{json.dumps(example_json(), indent=2, sort_keys=True)}
+
+Episode:
+family: {incident.family}
+incident_id: {incident.incident_id}
+scenario: {incident.scenario}
+
+trace:
+{chr(10).join(trace_lines)}
+
+candidate_root_causes: {json.dumps(incident.candidate_root_causes)}
+allowed_require: {json.dumps(list(ALLOWED_REQUIRE_CLAUSES))}
+allowed_forbid: {json.dumps(list(ALLOWED_FORBID_EFFECTS))}
+allowed_preserve: {json.dumps(list(ALLOWED_PRESERVE_CLAUSES))}
+
+Now return the JSON object only.
+"""
     # This prompt intentionally contains only public trace information and allowed labels.
     # It does not include oracle fields, hidden variants, expected patches, or answer keys.
-    return json.dumps(public_payload, indent=2, sort_keys=True)
+    return prompt
 
 
 def build_target(family: str, seed: int) -> dict[str, Any]:

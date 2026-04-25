@@ -225,9 +225,10 @@ python training/train_json_grpo.py \
   --eval-seeds 1000 \
   --output-dir outputs/grpo_tiny_hf \
   --num-generations 2 \
-  --per-device-train-batch-size 1 \
+  --per-device-train-batch-size 2 \
   --gradient-accumulation-steps 1 \
   --learning-rate 5e-6 \
+  --max-completion-length 160 \
   --save-steps 10
 ```
 

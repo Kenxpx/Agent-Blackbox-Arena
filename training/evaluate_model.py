@@ -16,11 +16,49 @@ from server.agent_blackbox_environment import AgentBlackBoxEnvironment
 from training.make_dataset import build_target, parse_seed_spec
 
 
+def extract_first_json_object(text: str) -> str | None:
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    return None
+
+
 def parse_completion(text: str) -> tuple[dict[str, Any] | None, str | None]:
+    original_text = text
+    extracted = False
     try:
         value = json.loads(text)
     except json.JSONDecodeError as exc:
-        return None, f"invalid_json: {exc.msg}"
+        candidate = extract_first_json_object(original_text)
+        if candidate is None:
+            return None, f"invalid_json: {exc.msg}"
+        try:
+            value = json.loads(candidate)
+            extracted = True
+        except json.JSONDecodeError as inner_exc:
+            return None, f"invalid_json: {inner_exc.msg}"
     if not isinstance(value, dict):
         return None, "invalid_json: root must be object"
     required = {"evidence_spans", "root_cause", "patch", "regression_tests", "rationale"}
@@ -40,7 +78,7 @@ def parse_completion(text: str) -> tuple[dict[str, Any] | None, str | None]:
         return None, "invalid_json: regression_tests must be string list"
     if not isinstance(value["rationale"], str):
         return None, "invalid_json: rationale must be string"
-    return value, None
+    return value, "extracted_json_object" if extracted else None
 
 
 def patch_for_env(parsed: dict[str, Any]) -> dict[str, Any]:
@@ -99,6 +137,8 @@ def mock_completion(family: str, seed: int, mode: str) -> str:
     target = build_target(family, seed)
     if mode == "oracle":
         return json.dumps(target)
+    if mode == "wrapped_json":
+        return "```json\n" + json.dumps(target) + "\n```"
     if mode == "block_everything":
         target["patch"] = {
             "require": [
@@ -180,7 +220,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "eval")
     parser.add_argument("--eval-seeds", default="1000-1014")
     parser.add_argument("--completions-jsonl", type=Path, default=None)
-    parser.add_argument("--mock-policy", choices=["mixed", "oracle", "invalid_json", "block_everything", "hardcoded"], default="mixed")
+    parser.add_argument(
+        "--mock-policy",
+        choices=["mixed", "oracle", "invalid_json", "wrapped_json", "block_everything", "hardcoded"],
+        default="mixed",
+    )
     return parser
 
 
@@ -192,7 +236,7 @@ def main() -> int:
             metrics.append(score_completion(row["family"], int(row["seed"]), row["completion"]))
     else:
         seeds = parse_seed_spec("1000" if args.smoke else args.eval_seeds)
-        modes = ["oracle", "invalid_json", "block_everything", "hardcoded"] if args.mock_policy == "mixed" else [args.mock_policy]
+        modes = ["oracle", "invalid_json", "wrapped_json", "block_everything", "hardcoded"] if args.mock_policy == "mixed" else [args.mock_policy]
         for family in IMPLEMENTED_FAMILIES:
             for seed in seeds:
                 for mode in modes:
