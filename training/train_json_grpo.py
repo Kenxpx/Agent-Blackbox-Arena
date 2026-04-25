@@ -330,8 +330,13 @@ def build_grpo_config(GRPOConfig: Any, args: argparse.Namespace) -> Any:
         "num_generations": args.num_generations,
         "per_device_train_batch_size": args.per_device_train_batch_size,
         "gradient_accumulation_steps": args.gradient_accumulation_steps,
+        "gradient_checkpointing": args.gradient_checkpointing,
         "max_prompt_length": args.max_prompt_length,
         "max_completion_length": args.max_completion_length,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "top_k": args.top_k,
+        "repetition_penalty": args.repetition_penalty,
         "logging_steps": args.logging_steps,
         "save_steps": args.save_steps,
         "bf16": args.bf16,
@@ -359,6 +364,42 @@ def maybe_apply_lora(model: Any, args: argparse.Namespace) -> Any:
     peft_model = get_peft_model(model, config)
     peft_model.print_trainable_parameters()
     return peft_model
+
+
+def torch_dtype_arg(value: str) -> Any:
+    if value == "none":
+        return None
+    if value == "auto":
+        return "auto"
+    import torch  # type: ignore
+
+    return {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float32": torch.float32,
+    }[value]
+
+
+def load_causal_model(model_id: str, args: argparse.Namespace) -> Any:
+    from transformers import AutoModelForCausalLM  # type: ignore
+
+    model_kwargs = {"trust_remote_code": True, "device_map": "auto"}
+    if args.torch_dtype != "none":
+        model_kwargs["torch_dtype"] = torch_dtype_arg(args.torch_dtype)
+
+    model_path = Path(model_id)
+    adapter_config_path = model_path / "adapter_config.json"
+    if adapter_config_path.exists():
+        from peft import PeftConfig, PeftModel  # type: ignore
+
+        peft_config = PeftConfig.from_pretrained(str(model_path))
+        base_model = AutoModelForCausalLM.from_pretrained(
+            peft_config.base_model_name_or_path,
+            **model_kwargs,
+        )
+        return PeftModel.from_pretrained(base_model, str(model_path), is_trainable=True)
+
+    return AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
 
 
 def make_trainer(GRPOTrainer: Any, model: Any, tokenizer: Any, reward_func: Any, config: Any, train_dataset: Any, eval_dataset: Any) -> Any:
@@ -460,7 +501,7 @@ def run_full_grpo(args: argparse.Namespace) -> None:
     # - stop if reward rises while certificate success does not
     # - stop if block-everything or hardcoded behavior appears
     from datasets import Dataset  # type: ignore
-    from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore
+    from transformers import AutoTokenizer  # type: ignore
     from trl import GRPOConfig, GRPOTrainer  # type: ignore
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -476,7 +517,7 @@ def run_full_grpo(args: argparse.Namespace) -> None:
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True, padding_side="left")
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(args.model, trust_remote_code=True, device_map="auto")
+    model = load_causal_model(args.model, args)
     if tokenizer.pad_token_id is not None:
         model.config.pad_token_id = tokenizer.pad_token_id
     model = maybe_apply_lora(model, args)
@@ -511,8 +552,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--learning-rate", type=float, default=5e-6)
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    parser.add_argument("--gradient-checkpointing", action="store_true")
+    parser.add_argument("--torch-dtype", choices=["auto", "float16", "bfloat16", "float32", "none"], default="auto")
     parser.add_argument("--max-prompt-length", type=int, default=1024)
     parser.add_argument("--max-completion-length", type=int, default=160)
+    parser.add_argument("--temperature", type=float, default=0.8)
+    parser.add_argument("--top-p", type=float, default=0.9)
+    parser.add_argument("--top-k", type=int, default=50)
+    parser.add_argument("--repetition-penalty", type=float, default=1.05)
     parser.add_argument(
         "--format-reward-weight",
         type=float,

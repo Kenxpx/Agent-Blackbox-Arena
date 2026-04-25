@@ -235,6 +235,25 @@ python training/train_json_grpo.py \
 
 The non-smoke path is guarded by `--confirm-real-training`. It uses real model completions scored by the deterministic verifier, with a small training-only JSON-format shaping signal so GRPO is not stuck on all-invalid completions. Reported benchmark claims must come from verifier metrics only: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
 
+If the base 0.5B model keeps emitting invalid JSON, run the guarded SFT format warmstart first:
+
+```bash
+python training/train_sft_warmstart.py \
+  --confirm-real-training \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --max-steps 30 \
+  --train-seeds 0-5 \
+  --eval-seeds 1000-1002 \
+  --output-dir outputs/sft_qwen25_05b_json \
+  --per-device-train-batch-size 1 \
+  --gradient-accumulation-steps 1 \
+  --learning-rate 1e-5 \
+  --max-completion-length 160 \
+  --save-steps 30
+```
+
+Then use `--model outputs/sft_qwen25_05b_json/model` for the next tiny GRPO run only if the SFT held-out verifier summary is healthy.
+
 ## Hugging Face Space
 
 Placeholder Space link: `TODO_ADD_HF_SPACE_LINK`

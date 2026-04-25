@@ -183,7 +183,15 @@ Patch applied after this diagnosis:
 - Keep the deterministic verifier and benchmark metrics unchanged.
 - Keep invalid JSON, certificate success, hidden regression, valid preservation, overblocking, and hardcoding logged separately.
 
-Next GPU action remains a patched 0.5B rerun only. Run 2 is still blocked until the patched Run 1 produces valid JSON, nonzero verifier reward, and held-out metrics.
+Deeper patch after reviewing the first fix:
+
+- Remove incident IDs from model prompts to reduce hardcoded-patch behavior.
+- Replace global patch-label lists with compact family-specific candidate labels and semantic glosses.
+- Remove placeholder example labels that small models may copy as invalid clause IDs.
+- Add real guarded TRL SFT warmstart support using conversational prompt-completion records.
+- Keep SFT framed as format warmup only; final claims still require verifier-scored GRPO or held-out verifier metrics.
+
+Next GPU action should be a tiny 0.5B SFT format warmstart or a patched 0.5B GRPO rerun only. Run 2 is still blocked until the patched 0.5B path produces valid JSON, nonzero verifier reward, and held-out metrics.
 
 ## README Claim Decision
 

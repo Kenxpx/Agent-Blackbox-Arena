@@ -1,6 +1,6 @@
 # Final HF Training GO
 
-Decision: **GO for a patched Run 1 rerun only**.
+Decision: **GO for one tiny 0.5B format warmstart, then patched Run 1 only if warmstart metrics pass**.
 
 One real 0.5B T4 attempt completed, but it failed quality stop-loss because invalid JSON remained too high and verifier reward stayed at zero. Current results are baseline, smoke, and negative Run 1 diagnostics only; no trained improvement is claimed.
 
@@ -22,7 +22,7 @@ Do not let training claims replace the benchmark story. A small honest run with 
 - manual inspection of `outputs/grpo_smoke/sampled_generations.jsonl`
 - confirm the HF runtime can install `pip install -e ".[training]"`
 
-The patched Run 1 path uses conversational prompts for Qwen Instruct and a small training-only JSON-format shaping reward. Benchmark claims still come only from verifier metrics: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
+The patched path uses conversational prompts for Qwen Instruct, a compact family-specific label set, and a small training-only JSON-format shaping reward. Benchmark claims still come only from verifier metrics: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
 
 ## Model Ladder
 
@@ -32,7 +32,24 @@ The patched Run 1 path uses conversational prompts for Qwen Instruct and a small
 - Hardware: T4-small first
 - Goal: prove deterministic verifier reward, strict JSON parsing, sampled generation logging, CSV/JSON metrics, held-out evaluation, and checkpoint saving
 - Budget posture: spend the smallest useful amount
-- Status: approved as the first patched rerun only; Run 2 is still blocked
+- Status: approved only after the tiny SFT warmstart or an explicit zero-shot probe shows usable JSON; Run 2 is still blocked
+
+Tiny SFT warmstart command:
+
+```bash
+python training/train_sft_warmstart.py \
+  --confirm-real-training \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --max-steps 30 \
+  --train-seeds 0-5 \
+  --eval-seeds 1000-1002 \
+  --output-dir outputs/sft_qwen25_05b_json \
+  --per-device-train-batch-size 1 \
+  --gradient-accumulation-steps 1 \
+  --learning-rate 1e-5 \
+  --max-completion-length 160 \
+  --save-steps 30
+```
 
 Command:
 
@@ -53,6 +70,12 @@ python training/train_json_grpo.py \
   --max-completion-length 160 \
   --format-reward-weight 0.2 \
   --save-steps 10
+```
+
+If the SFT warmstart passes held-out verifier checks, use:
+
+```bash
+--model outputs/sft_qwen25_05b_json/model
 ```
 
 ### Run 2 - Main Small Result

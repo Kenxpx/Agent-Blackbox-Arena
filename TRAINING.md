@@ -89,6 +89,32 @@ Smoke:
 python training/train_sft_warmstart.py --smoke --output-dir outputs/sft_smoke
 ```
 
+Tiny real SFT warmstart, if base GRPO keeps producing invalid JSON:
+
+```bash
+python training/train_sft_warmstart.py \
+  --confirm-real-training \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --max-steps 30 \
+  --train-seeds 0-5 \
+  --eval-seeds 1000-1002 \
+  --output-dir outputs/sft_qwen25_05b_json \
+  --per-device-train-batch-size 1 \
+  --gradient-accumulation-steps 1 \
+  --learning-rate 1e-5 \
+  --max-completion-length 160 \
+  --save-steps 30
+```
+
+SFT writes:
+
+- `outputs/sft_qwen25_05b_json/sft_summary.json`
+- `outputs/sft_qwen25_05b_json/heldout_eval_summary.json`
+- `outputs/sft_qwen25_05b_json/heldout_eval_completions.jsonl`
+- `outputs/sft_qwen25_05b_json/model/`
+
+Use the SFT checkpoint for GRPO only if held-out JSON improves and no overblocking or hardcoding appears. SFT alone is not the final RL result.
+
 ## GRPO Purpose
 
 GRPO is the intended first RL path because the environment has deterministic verifier rewards. The model receives a public failed trace and outputs one strict JSON repair plan.
@@ -144,6 +170,12 @@ python training/train_json_grpo.py \
   --max-completion-length 160 \
   --format-reward-weight 0.2 \
   --save-steps 10
+```
+
+If the SFT warmstart passed, replace the model with:
+
+```bash
+--model outputs/sft_qwen25_05b_json/model
 ```
 
 Expected files:

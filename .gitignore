@@ -10,3 +10,4 @@ build/
 *.egg-info/
 .env
 .DS_Store
+hf_job_*_logs.txt
