@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.110",
   "uvicorn>=0.27",
+  "pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]
@@ -21,7 +22,7 @@ training = [
   "peft>=0.12",
 ]
 plots = [
-  "pillow>=8",
+  "pillow>=10.0.0",
 ]
 dev = [
   "pytest>=8.0",
