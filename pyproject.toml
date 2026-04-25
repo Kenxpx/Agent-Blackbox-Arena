@@ -20,12 +20,13 @@ training = [
   "accelerate>=0.34",
   "datasets>=2.20",
   "peft>=0.12",
+  "pytest>=8.0.0",
 ]
 plots = [
   "pillow>=10.0.0",
 ]
 dev = [
-  "pytest>=8.0",
+  "pytest>=8.0.0",
 ]
 
 [tool.setuptools.packages.find]
