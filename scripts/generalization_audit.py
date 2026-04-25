@@ -14,11 +14,23 @@ from training.make_dataset import CHALLENGE_VARIANTS, assert_prompt_has_no_hidde
 
 OUTPUT_DIR = ROOT / "outputs" / "generalization_audit"
 AUDIT_MD = ROOT / "GENERALIZATION_AND_CLAIM_AUDIT.md"
+SFT_MODEL_DIR = ROOT / "outputs" / "sft_qwen25_05b_json" / "model"
+GRPO_MODEL_DIR = ROOT / "outputs" / "grpo_tiny_hf" / "model"
 
 SFT_TRAIN_SEEDS = "0-5"
 GRPO_TRAIN_SEEDS = "0-2"
 LARGE_EVAL_SEEDS = "1000-1049"
 CHALLENGE_VARIANT = "shuffled_surface_blind"
+
+HF_EVAL_COMMAND = """hf jobs run \\
+  --flavor t4-small \\
+  --timeout 90m \\
+  python:3.11 \\
+  -- \\
+  bash \\
+  -lc \\
+  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && python scripts/self_check.py && python training/evaluate_checkpoint.py --model Qwen/Qwen2.5-0.5B-Instruct --model-label base_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/base_0_5b_standard && python training/train_sft_warmstart.py --confirm-real-training --model Qwen/Qwen2.5-0.5B-Instruct --max-steps 30 --train-seeds 0-5 --eval-seeds 1000-1002 --output-dir outputs/sft_qwen25_05b_json --per-device-train-batch-size 1 --gradient-accumulation-steps 1 --learning-rate 1e-5 --max-completion-length 160 --save-steps 30 && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/sft_0_5b_standard && python training/train_json_grpo.py --confirm-real-training --model outputs/sft_qwen25_05b_json/model --max-steps 10 --train-seeds 0-2 --eval-seeds 1000 --output-dir outputs/grpo_tiny_hf --num-generations 2 --per-device-train-batch-size 2 --gradient-accumulation-steps 1 --learning-rate 5e-6 --max-completion-length 160 --format-reward-weight 0.2 --save-steps 10 && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/sft_grpo_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_challenge --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_grpo_0_5b_challenge && python scripts/plot_model_eval.py --summary base=outputs/model_eval/base_0_5b_standard/summary.json --summary sft=outputs/model_eval/sft_0_5b_standard/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_standard/summary.json --output-dir outputs/model_eval && echo '=== BASE SUMMARY ===' && cat outputs/model_eval/base_0_5b_standard/summary.json && echo '=== SFT SUMMARY ===' && cat outputs/model_eval/sft_0_5b_standard/summary.json && echo '=== SFT+GRPO SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_standard/summary.json && echo '=== CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_challenge/summary.json"
+"""
 
 
 def prompt_text(record: dict[str, Any]) -> str:
@@ -79,6 +91,12 @@ def run_leakage_audit() -> dict[str, Any]:
         "prompt_target_leakage_issues": issues,
         "hidden_answer_leakage": "passed" if not issues else "failed",
         "family_label_note": family_label_note,
+        "local_checkpoint_status": {
+            "sft_model_present": SFT_MODEL_DIR.exists(),
+            "grpo_model_present": GRPO_MODEL_DIR.exists(),
+            "sft_model_path": str(SFT_MODEL_DIR),
+            "grpo_model_path": str(GRPO_MODEL_DIR),
+        },
     }
 
 
@@ -153,6 +171,13 @@ Result: **{leakage['status']}**
 
 Real 0.5B larger held-out model evaluation is **pending** until the next HF job is approved. The repo now includes `training/evaluate_checkpoint.py` to evaluate base, SFT, and SFT+GRPO checkpoints over seeds `{LARGE_EVAL_SEEDS}`.
 
+Local checkpoint availability:
+
+- `outputs/sft_qwen25_05b_json/model`: `{leakage['local_checkpoint_status']['sft_model_present']}`
+- `outputs/grpo_tiny_hf/model`: `{leakage['local_checkpoint_status']['grpo_model_present']}`
+
+Because the trained checkpoints are not present locally, this audit did not run real model inference. The larger eval must run in an HF job or another runtime where the checkpoints are recreated or available.
+
 Oracle verifier sanity over the same larger seed range:
 
 ```json
@@ -199,6 +224,12 @@ TRAINING_RUN_LOG.md records:
 - no broad final claim yet
 
 This audit adds the next required evidence gate: larger held-out and challenge model evaluation before Run 2 or final claims.
+
+Exact next HF Jobs command, when approved:
+
+```bash
+{HF_EVAL_COMMAND}
+```
 
 ## 8. GO / NO-GO For 1.5B
 

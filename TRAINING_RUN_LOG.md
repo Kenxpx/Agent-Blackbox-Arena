@@ -386,6 +386,16 @@ The new challenge variant `shuffled_surface_blind`:
 
 Run 2 remains blocked until base 0.5B, SFT warmstart, and SFT+GRPO checkpoints are compared on a larger held-out seed range such as `1000-1049`, plus at least one challenge variant.
 
+Formal local audit result:
+
+- Leakage audit: PASS.
+- Standard and challenge prompt records checked: 900.
+- SFT train seeds `0-5` and GRPO train seeds `0-2` do not overlap larger eval seeds `1000-1049`.
+- Target JSON does not appear verbatim in eval prompts.
+- Hidden oracle fields do not appear in prompts.
+- Incident IDs are not present in prompts and are not usable for hardcoding.
+- Local trained checkpoints are not present at `outputs/sft_qwen25_05b_json/model` or `outputs/grpo_tiny_hf/model`, so larger real model evaluation must run in an HF job or another runtime where the checkpoints are recreated or available.
+
 Safe next evidence claim, if the larger eval passes:
 
 - "Base 0.5B collapsed into invalid JSON."
