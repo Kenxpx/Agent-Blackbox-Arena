@@ -11,3 +11,4 @@ build/
 .env
 .DS_Store
 hf_job_*_logs.txt
+outputs/training_preflight_report.json

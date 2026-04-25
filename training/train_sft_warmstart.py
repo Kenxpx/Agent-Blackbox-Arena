@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import inspect
 import json
 import sys
@@ -12,7 +13,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
-from training.train_json_grpo import run_heldout_generation_eval
+from training.quality_gate import build_stoploss_report, fail_on_quality_errors, validate_sft_args, write_json
+from training.train_json_grpo import namespace_to_jsonable, run_heldout_generation_eval
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 
@@ -58,6 +60,11 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         for record in records:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def load_csv_rows(path: Path) -> list[dict[str, Any]]:
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
 
 
 def run_smoke(args: argparse.Namespace) -> None:
@@ -173,6 +180,7 @@ def make_sft_trainer(SFTTrainer: Any, model: Any, tokenizer: Any, config: Any, t
 
 
 def run_full_sft(args: argparse.Namespace) -> None:
+    fail_on_quality_errors(validate_sft_args(args), "SFT")
     if not args.confirm_real_training:
         raise RuntimeError(
             "Refusing to start paid-capable SFT without --confirm-real-training. "
@@ -192,6 +200,15 @@ def run_full_sft(args: argparse.Namespace) -> None:
     from trl import SFTConfig, SFTTrainer  # type: ignore
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    write_json(
+        args.output_dir / "run_config.json",
+        {
+            "mode": "real_sft_warmstart",
+            "args": namespace_to_jsonable(args),
+            "quality_gate": "passed_before_model_load",
+            "source": "training/train_sft_warmstart.py",
+        },
+    )
     train_rows = build_sft_records("train", parse_seed_spec(args.train_seeds))
     eval_rows = build_sft_records("eval", parse_seed_spec(args.eval_seeds))
     write_jsonl(args.output_dir / "train_sft.jsonl", train_rows)
@@ -246,11 +263,23 @@ def run_full_sft(args: argparse.Namespace) -> None:
         max_prompt_length=args.max_prompt_length,
         max_completion_length=args.max_completion_length,
     )
-    run_heldout_generation_eval(trainer.model, tokenizer, eval_generation_rows, generation_args)
+    heldout_summary = run_heldout_generation_eval(trainer.model, tokenizer, eval_generation_rows, generation_args)
+    heldout_rows = load_csv_rows(args.output_dir / "heldout_eval_metrics.csv")
+    quality_report = build_stoploss_report(
+        heldout_rows,
+        heldout_summary=heldout_summary,
+        trainer_metrics=trainer_metrics,
+        mode="sft_warmstart",
+    )
+    quality_report["sft_claim_boundary"] = (
+        "SFT is a strict-JSON warmstart. Treat PASS as formatting readiness, not final RL improvement."
+    )
+    write_json(args.output_dir / "sft_quality_report.json", quality_report)
 
     print(f"train_sft_warmstart: real SFT wrote {args.output_dir / 'sft_summary.json'}")
     print(f"train_sft_warmstart: real SFT wrote {args.output_dir / 'model'}")
     print(f"train_sft_warmstart: held-out verifier summary {args.output_dir / 'heldout_eval_summary.json'}")
+    print(f"train_sft_warmstart: quality_status={quality_report['status']}")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

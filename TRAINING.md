@@ -1,6 +1,6 @@
 # Training Plan
 
-Gate 4/5 includes a training scaffold only. No real GRPO run has been executed yet, no GPU has been used, and no trained improvement is claimed.
+Gate 4/5 produced the training scaffold, and the first controlled 0.5B HF run has now validated the pipeline after an SFT format warmstart. The successful run proves that model loading, strict JSON output, deterministic verifier reward, sampled generation logging, held-out evaluation, checkpoint saving, and stop-loss reporting work. It does not by itself prove broad trained-model improvement, because the tiny GRPO phase was saturated after SFT warmup.
 
 The environment is the innovation. Training evidence is used to show that the replay -> repair -> regress -> certify loop gives a learnable reward signal.
 
@@ -37,6 +37,7 @@ Hardware recommendation:
 
 - `python -m pytest`
 - `python scripts/self_check.py`
+- `python scripts/training_preflight.py`
 - `python scripts/evaluate_baselines.py`
 - `python scripts/make_plots.py`
 - `python training/make_dataset.py --smoke --output-dir outputs/training_smoke`
@@ -44,6 +45,7 @@ Hardware recommendation:
 - `python training/evaluate_model.py --smoke --output-dir outputs/eval_smoke`
 - `python training/train_sft_warmstart.py --smoke --output-dir outputs/sft_smoke`
 - manual inspection of `outputs/grpo_smoke/sampled_generations.jsonl`
+- automatic rejection of bad GRPO configs such as `--per-device-train-batch-size 1 --num-generations 2`
 
 Install training-only dependencies on the training runtime, not in the CPU Space runtime:
 
@@ -59,6 +61,7 @@ Run 1 - pipeline validation:
 - Hardware: T4-small first
 - Scale: very tiny GRPO
 - Goal: prove reward function, strict JSON parsing, logging, metrics, sampled generations, held-out evaluation, and checkpoint saving work
+- Status: completed once after SFT warmstart with real HF logs; keep using this as the minimum proof pattern
 - Stop-loss: stop if files are missing, invalid JSON is above 0.60, or reward does not beat `random_patch` score `0.144`
 
 Run 2 - main small result:
@@ -136,6 +139,45 @@ After the first HF T4 attempt, the training path was hardened for Qwen Instruct 
 
 The format shaping reward exists only to escape the all-invalid-JSON cold start. It is not an environment score and must not be reported as benchmark improvement.
 
+## Training Quality Gate
+
+Official TRL guidance confirms that GRPO uses groups of generated completions per prompt, custom reward functions can score those completions, and metrics such as `reward_std` and `frac_reward_zero_std` reveal whether the group has useful reward variation. The project now makes those assumptions explicit before any paid-capable run.
+
+Run this before GPU:
+
+```bash
+python scripts/training_preflight.py
+```
+
+The preflight checks:
+
+- conversational prompt format for Qwen Instruct models
+- no hidden answers, hidden variants, or incident IDs in training prompts
+- SFT target JSON parses and scores 1.0 with the deterministic verifier
+- the old failing config `--per-device-train-batch-size 1 --num-generations 2` is rejected locally
+- the corrected config `--per-device-train-batch-size 2 --num-generations 2` passes
+- invalid-JSON collapse triggers stop-loss
+- saturated perfect GRPO rows produce a caveat instead of a fake learning claim
+
+Real GRPO writes:
+
+- `run_config.json`
+- `summary.json`
+- `metrics.csv`
+- `sampled_generations.jsonl`
+- `heldout_eval_summary.json`
+- `heldout_eval_metrics.csv`
+- `stoploss_report.json`
+
+Real SFT writes:
+
+- `run_config.json`
+- `sft_summary.json`
+- `heldout_eval_summary.json`
+- `sft_quality_report.json`
+
+If `stoploss_report.json` says `STOP`, do not run a bigger model. If it says `PASS` with a saturation warning, the pipeline is valid but the result should be described as format/pipeline validation, not extra GRPO learning.
+
 ## Dataset Command
 
 ```bash
@@ -180,8 +222,10 @@ If the SFT warmstart passed, replace the model with:
 
 Expected files:
 
+- `outputs/grpo_tiny_hf/run_config.json`
 - `outputs/grpo_tiny_hf/metrics.csv`
 - `outputs/grpo_tiny_hf/summary.json`
+- `outputs/grpo_tiny_hf/stoploss_report.json`
 - `outputs/grpo_tiny_hf/sampled_generations.jsonl`
 - `outputs/grpo_tiny_hf/heldout_eval_completions.jsonl`
 - `outputs/grpo_tiny_hf/heldout_eval_metrics.csv`
@@ -252,6 +296,7 @@ python training/train_json_grpo.py \
   --eval-seeds 1000 \
   --output-dir outputs/grpo_qwen3_4b_unsloth_probe \
   --num-generations 2 \
+  --per-device-train-batch-size 2 \
   --use-lora \
   --use-unsloth
 ```
@@ -295,6 +340,7 @@ Expected real-run files:
 
 - `outputs/grpo_tiny_hf/metrics.csv`
 - `outputs/grpo_tiny_hf/summary.json`
+- `outputs/grpo_tiny_hf/stoploss_report.json`
 - `outputs/grpo_tiny_hf/sampled_generations.jsonl`
 - `outputs/grpo_tiny_hf/heldout_eval_summary.json`
 - `outputs/grpo_tiny_hf/model/`
@@ -320,4 +366,6 @@ If LoRA or QLoRA is used, test post-training inference immediately. Do not naive
 
 ## No Fake Results
 
-Do not claim trained model improvement, SOTA, production certification, or global safety. Current results are baseline and smoke results only.
+Do not claim trained model improvement, SOTA, production certification, or global safety from baseline, smoke, or saturated tiny-run evidence alone.
+
+Allowed current claim: the first 0.5B HF run validates the strict JSON training pipeline and verifier-scored held-out evaluation after a tiny SFT warmstart. Do not claim broad improvement until a non-saturated run or a wider held-out comparison proves it.

@@ -122,7 +122,7 @@ Hardcoded patches fail because the verifier detects incident IDs and hidden-test
 
 ## Baseline Results
 
-Current results are baseline and smoke results. Trained-model results will be added after a real GRPO run.
+Current table results are baseline and smoke results. The first controlled 0.5B HF run validates the strict JSON training pipeline after SFT warmup, but final trained-model comparison claims will be added only after real plots and wider held-out evidence are generated.
 
 These baseline results are generated from `outputs/results.csv` over 5 baselines x 3 families x 10 deterministic seeds.
 
@@ -144,7 +144,7 @@ These baseline results are generated from `outputs/results.csv` over 5 baselines
 
 ## Training Status
 
-Training scaffold and smoke tests pass. Real GRPO training has not been run yet and no trained improvement is claimed.
+Training scaffold and smoke tests pass. A tiny 0.5B HF SFT+GRPO validation run completed with real logs, sampled generations, and held-out verifier metrics, but no broad trained-model improvement is claimed from that saturated tiny run.
 
 Training is framed as evidence for the environment: a model should improve only if the replay, patch, regression, and certificate loop gives a learnable signal.
 
@@ -154,6 +154,8 @@ Available scaffold files:
 - `training/train_json_grpo.py`
 - `training/evaluate_model.py`
 - `training/train_sft_warmstart.py`
+- `training/quality_gate.py`
+- `scripts/training_preflight.py`
 
 Smoke outputs:
 
@@ -192,6 +194,7 @@ python scripts/make_plots.py
 Run training smoke commands:
 
 ```bash
+python scripts/training_preflight.py
 python training/make_dataset.py --smoke --output-dir outputs/training_smoke
 python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke
 python training/evaluate_model.py --smoke --output-dir outputs/eval_smoke
@@ -233,7 +236,7 @@ python training/train_json_grpo.py \
   --save-steps 10
 ```
 
-The non-smoke path is guarded by `--confirm-real-training`. It uses real model completions scored by the deterministic verifier, with a small training-only JSON-format shaping signal so GRPO is not stuck on all-invalid completions. Reported benchmark claims must come from verifier metrics only: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
+The non-smoke path is guarded by `--confirm-real-training` and a local quality gate. It rejects bad GRPO settings such as a batch size that is not divisible by `--num-generations` before model loading or HF spend. It uses real model completions scored by the deterministic verifier, with a small training-only JSON-format shaping signal so GRPO is not stuck on all-invalid completions. Reported benchmark claims must come from verifier metrics only: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
 
 If the base 0.5B model keeps emitting invalid JSON, run the guarded SFT format warmstart first:
 
@@ -282,4 +285,4 @@ The Agent Repair Certificate is bounded to the generated finite incident family,
 
 ## No Fake Results
 
-This repo does not claim trained model improvement yet. Current results are baseline and smoke results only. Trained-model results will be added only after a real GRPO run with saved logs and plots.
+This repo does not claim broad trained model improvement yet. Current public tables are baseline/smoke evidence plus a real tiny-run pipeline validation recorded in `TRAINING_RUN_LOG.md`. Trained-vs-baseline claims will be added only after saved real logs, stop-loss reports, held-out metrics, and plots support them.

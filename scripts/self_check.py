@@ -27,6 +27,7 @@ TRAINING_SMOKE_DIR = OUTPUT_DIR / "training_smoke"
 GRPO_SMOKE_DIR = OUTPUT_DIR / "grpo_smoke"
 EVAL_SMOKE_DIR = OUTPUT_DIR / "eval_smoke"
 SFT_SMOKE_DIR = OUTPUT_DIR / "sft_smoke"
+TRAINING_PREFLIGHT_REPORT = OUTPUT_DIR / "training_preflight_report.json"
 DOCS_REQUIRED = [
     ROOT / "README.md",
     ROOT / "BENCHMARK_SPEC.md",
@@ -193,6 +194,10 @@ def run_gate4_training_smoke_checks() -> None:
     commands = [
         [
             sys.executable,
+            str(ROOT / "scripts" / "training_preflight.py"),
+        ],
+        [
+            sys.executable,
             str(ROOT / "training" / "make_dataset.py"),
             "--smoke",
             "--output-dir",
@@ -234,6 +239,7 @@ def run_gate4_training_smoke_checks() -> None:
         EVAL_SMOKE_DIR / "summary.json",
         SFT_SMOKE_DIR / "sft_samples.jsonl",
         SFT_SMOKE_DIR / "sft_smoke_summary.json",
+        TRAINING_PREFLIGHT_REPORT,
     ]
     for path in required_files:
         assert path.exists(), f"missing Gate 4 smoke artifact: {path}"
@@ -243,6 +249,8 @@ def run_gate4_training_smoke_checks() -> None:
     assert grpo_summary["full_grpo_ran"] is False
     sft_summary = json.loads((SFT_SMOKE_DIR / "sft_smoke_summary.json").read_text(encoding="utf-8"))
     assert sft_summary["full_sft_ran"] is False
+    preflight = json.loads(TRAINING_PREFLIGHT_REPORT.read_text(encoding="utf-8"))
+    assert preflight["status"] == "PASS"
 
 
 def run_gate5_docs_and_space_checks() -> None:
@@ -256,8 +264,8 @@ def run_gate5_docs_and_space_checks() -> None:
         "Replay. Repair. Regress. Certify.",
         "not an observability dashboard",
         "failed trace -> replay -> evidence -> root cause -> patch -> regressions -> certificate",
-        "Current results are baseline and smoke results",
-        "Trained-model results will be added after a real GRPO run",
+        "Current table results are baseline and smoke results",
+        "final trained-model comparison claims will be added only after real plots and wider held-out evidence",
         "TODO_ADD_HF_SPACE_LINK",
         "TODO_ADD_VIDEO_OR_BLOG_LINK",
     ]

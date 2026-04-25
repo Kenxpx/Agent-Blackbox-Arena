@@ -1,8 +1,8 @@
 # Final HF Training GO
 
-Decision: **GO for one tiny 0.5B format warmstart, then patched Run 1 only if warmstart metrics pass**.
+Decision: **GO for quality-gated evidence consolidation; conditional GO for Run 2 only after the new preflight and stop-loss artifacts are green**.
 
-One real 0.5B T4 attempt completed, but it failed quality stop-loss because invalid JSON remained too high and verifier reward stayed at zero. Current results are baseline, smoke, and negative Run 1 diagnostics only; no trained improvement is claimed.
+The first base 0.5B T4 attempts exposed two failure modes: an invalid GRPO batch/generation config and all-invalid JSON completions. After prompt hardening and a tiny SFT format warmstart, the latest 0.5B SFT+GRPO validation completed with real logs, sampled generations, held-out verifier metrics, and a saved checkpoint. This is strong pipeline evidence, not a broad trained-improvement claim, because the GRPO phase was saturated after SFT warmup.
 
 ## Framing
 
@@ -17,10 +17,12 @@ Do not let training claims replace the benchmark story. A small honest run with 
 ## Required Before HF Spend
 
 - `python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke`
+- `python scripts/training_preflight.py`
 - `python scripts/self_check.py`
 - `python -m pytest`
 - manual inspection of `outputs/grpo_smoke/sampled_generations.jsonl`
 - confirm the HF runtime can install `pip install -e ".[training]"`
+- confirm any real run writes `run_config.json` and `stoploss_report.json`
 
 The patched path uses conversational prompts for Qwen Instruct, a compact family-specific label set, and a small training-only JSON-format shaping reward. Benchmark claims still come only from verifier metrics: `overall_score`, certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding.
 
@@ -32,7 +34,7 @@ The patched path uses conversational prompts for Qwen Instruct, a compact family
 - Hardware: T4-small first
 - Goal: prove deterministic verifier reward, strict JSON parsing, sampled generation logging, CSV/JSON metrics, held-out evaluation, and checkpoint saving
 - Budget posture: spend the smallest useful amount
-- Status: approved only after the tiny SFT warmstart or an explicit zero-shot probe shows usable JSON; Run 2 is still blocked
+- Status: completed once after tiny SFT warmstart; repeat only if needed for cleaner artifacts, not by default
 
 Tiny SFT warmstart command:
 
@@ -85,6 +87,7 @@ If the SFT warmstart passes held-out verifier checks, use:
 - Hardware: T4-small first
 - Goal: improve hidden-regression pass rate and certificate success while preserving valid behavior
 - Status: approved only after Run 1 writes valid real logs
+- Current gate: allowed only after `training_preflight_report.json`, `stoploss_report.json`, held-out metrics, and sampled generations are inspected
 
 Template:
 
@@ -159,6 +162,7 @@ python training/train_json_grpo.py \
   --eval-seeds 1000 \
   --output-dir outputs/grpo_qwen3_4b_unsloth_probe \
   --num-generations 2 \
+  --per-device-train-batch-size 2 \
   --use-lora \
   --use-unsloth
 ```
@@ -194,6 +198,8 @@ Stop immediately if:
 
 - `outputs/grpo_tiny_hf/metrics.csv`
 - `outputs/grpo_tiny_hf/summary.json`
+- `outputs/grpo_tiny_hf/run_config.json`
+- `outputs/grpo_tiny_hf/stoploss_report.json`
 - `outputs/grpo_tiny_hf/sampled_generations.jsonl`
 - `outputs/grpo_tiny_hf/heldout_eval_completions.jsonl`
 - `outputs/grpo_tiny_hf/heldout_eval_metrics.csv`
@@ -208,3 +214,4 @@ Stop immediately if:
 - Do not claim global safety or production certification.
 - Do not present smoke or mock outputs as training results.
 - Do not imply 4B is required for the project to be valid.
+- Do not describe the saturated 0.5B GRPO phase as additional RL learning; describe it as pipeline validation unless a non-saturated run proves otherwise.

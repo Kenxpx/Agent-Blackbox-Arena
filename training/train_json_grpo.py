@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from training.evaluate_model import extract_first_json_object, mock_completion, parse_completion, score_completion, summarize
 from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
+from training.quality_gate import build_stoploss_report, fail_on_quality_errors, validate_grpo_args, write_json
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 
@@ -309,6 +310,10 @@ def write_training_metrics(output_dir: Path, metric_rows: list[dict[str, Any]], 
         "samples_scored": len(metric_rows),
         "verifier_summary": verifier_summary,
         "trainer_metrics": trainer_metrics,
+        "quality_gate_note": (
+            "See stoploss_report.json for pass/stop decision, held-out checks, "
+            "and GRPO saturation caveats."
+        ),
         "note": "Generated from real model completions scored by the deterministic verifier.",
     }
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -416,7 +421,7 @@ def make_trainer(GRPOTrainer: Any, model: Any, tokenizer: Any, reward_func: Any,
         return GRPOTrainer(**trainer_kwargs, tokenizer=tokenizer)
 
 
-def run_heldout_generation_eval(model: Any, tokenizer: Any, eval_rows: list[dict[str, Any]], args: argparse.Namespace) -> None:
+def run_heldout_generation_eval(model: Any, tokenizer: Any, eval_rows: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, Any]:
     import torch  # type: ignore
 
     heldout_path = args.output_dir / "heldout_eval_completions.jsonl"
@@ -477,9 +482,18 @@ def run_heldout_generation_eval(model: Any, tokenizer: Any, eval_rows: list[dict
     summary = summarize(heldout_metrics)
     summary["mode"] = "heldout_generation_eval"
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return summary
+
+
+def namespace_to_jsonable(args: argparse.Namespace) -> dict[str, Any]:
+    output: dict[str, Any] = {}
+    for key, value in sorted(vars(args).items()):
+        output[key] = str(value) if isinstance(value, Path) else value
+    return output
 
 
 def run_full_grpo(args: argparse.Namespace) -> None:
+    fail_on_quality_errors(validate_grpo_args(args), "GRPO")
     if not args.confirm_real_training:
         raise RuntimeError(
             "Refusing to start paid-capable training without --confirm-real-training. "
@@ -505,6 +519,15 @@ def run_full_grpo(args: argparse.Namespace) -> None:
     from trl import GRPOConfig, GRPOTrainer  # type: ignore
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    write_json(
+        args.output_dir / "run_config.json",
+        {
+            "mode": "real_grpo",
+            "args": namespace_to_jsonable(args),
+            "quality_gate": "passed_before_model_load",
+            "source": "training/train_json_grpo.py",
+        },
+    )
     sampled_path = args.output_dir / "sampled_generations.jsonl"
     sampled_path.write_text("", encoding="utf-8")
     metric_rows: list[dict[str, Any]] = []
@@ -530,12 +553,20 @@ def run_full_grpo(args: argparse.Namespace) -> None:
     trainer.save_model(str(args.output_dir / "model"))
     tokenizer.save_pretrained(str(args.output_dir / "model"))
     write_training_metrics(args.output_dir, metric_rows, trainer_metrics)
-    run_heldout_generation_eval(model, tokenizer, eval_rows, args)
+    heldout_summary = run_heldout_generation_eval(model, tokenizer, eval_rows, args)
+    stoploss_report = build_stoploss_report(
+        metric_rows,
+        heldout_summary=heldout_summary,
+        trainer_metrics=trainer_metrics,
+        mode="grpo",
+    )
+    write_json(args.output_dir / "stoploss_report.json", stoploss_report)
 
     print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'metrics.csv'}")
     print(f"train_json_grpo: real GRPO wrote {sampled_path}")
     print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'summary.json'}")
     print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'heldout_eval_summary.json'}")
+    print(f"train_json_grpo: real GRPO stoploss_status={stoploss_report['status']}")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -548,6 +579,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-seeds", default="1000-1014")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "grpo")
     parser.add_argument("--num-generations", type=int, default=4)
+    parser.add_argument(
+        "--allow-single-generation",
+        action="store_true",
+        help="Emergency OOM override only. Single-generation GRPO has no group variance and is not preferred evidence.",
+    )
     parser.add_argument("--use-unsloth", action="store_true")
     parser.add_argument("--learning-rate", type=float, default=5e-6)
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
