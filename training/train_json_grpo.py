@@ -1,0 +1,468 @@
+from __future__ import annotations
+
+import argparse
+import csv
+import inspect
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from training.evaluate_model import mock_completion, parse_completion, score_completion, summarize
+from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, parse_seed_spec
+
+DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+
+METRIC_FIELDNAMES = [
+    "reward_call",
+    "sample_index",
+    "prompt_id",
+    "family",
+    "seed",
+    "reward",
+    "overall_score",
+    "certificate_success",
+    "hidden_regression_pass_rate",
+    "valid_preservation_rate",
+    "invalid_json",
+    "overblocking",
+    "hardcoded_patch",
+    "parse_error",
+]
+
+
+def verifier_reward(family: str, seed: int, completion: str) -> float:
+    return float(score_completion(family, seed, completion)["overall_score"])
+
+
+def run_smoke(args: argparse.Namespace) -> None:
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    records = build_records("train", parse_seed_spec("0"))
+    sampled_path = args.output_dir / "sampled_generations.jsonl"
+    metrics_path = args.output_dir / "metrics.csv"
+    summary_path = args.output_dir / "smoke_summary.json"
+
+    samples: list[dict[str, Any]] = []
+    metric_rows: list[dict[str, Any]] = []
+    completion_modes = ["oracle", "invalid_json", "block_everything", "hardcoded"]
+
+    for step, record in enumerate(records[:3]):
+        family = record["family"]
+        seed = int(record["seed"])
+        for mode in completion_modes:
+            completion = mock_completion(family, seed, mode)
+            parsed, error = parse_completion(completion)
+            metrics = score_completion(family, seed, completion)
+            samples.append(
+                {
+                    "step": step,
+                    "family": family,
+                    "seed": seed,
+                    "mode": mode,
+                    "prompt_id": record["id"],
+                    "completion": completion,
+                    "parse_ok": parsed is not None,
+                    "parse_error": error,
+                    "reward": metrics["overall_score"],
+                }
+            )
+            metric_rows.append(
+                {
+                    "step": step,
+                    "family": family,
+                    "seed": seed,
+                    "mode": mode,
+                    "reward": metrics["overall_score"],
+                    "invalid_json": metrics["invalid_json"],
+                    "certificate_success": metrics["certificate_success"],
+                    "hidden_regression_pass_rate": metrics["hidden_regression_pass_rate"],
+                    "valid_preservation_rate": metrics["valid_preservation_rate"],
+                    "overblocking": metrics["overblocking"],
+                    "hardcoded_patch": metrics["hardcoded_patch"],
+                }
+            )
+
+    with sampled_path.open("w", encoding="utf-8") as handle:
+        for sample in samples:
+            handle.write(json.dumps(sample, sort_keys=True) + "\n")
+    with metrics_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(metric_rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(metric_rows)
+    invalid_json_rate = sum(row["invalid_json"] for row in metric_rows) / len(metric_rows)
+    summary = {
+        "mode": "smoke",
+        "model": args.model,
+        "samples": len(samples),
+        "invalid_json_rate": round(invalid_json_rate, 4),
+        "max_steps": args.max_steps,
+        "num_generations": args.num_generations,
+        "full_grpo_ran": False,
+        "note": "Smoke mode tests parser and verifier reward only. It does not run TRL training.",
+    }
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+
+    print(f"train_json_grpo: smoke wrote {metrics_path}")
+    print(f"train_json_grpo: smoke wrote {sampled_path}")
+    print(f"train_json_grpo: smoke invalid_json_rate={invalid_json_rate:.4f}")
+    print("train_json_grpo: full GRPO not run in smoke mode")
+
+
+def completion_to_text(completion: Any) -> str:
+    if isinstance(completion, str):
+        return completion.strip()
+    if isinstance(completion, dict):
+        if "content" in completion:
+            return str(completion["content"]).strip()
+        return json.dumps(completion, sort_keys=True)
+    if isinstance(completion, list):
+        if completion and isinstance(completion[-1], dict) and "content" in completion[-1]:
+            return str(completion[-1]["content"]).strip()
+        return "".join(completion_to_text(item) for item in completion).strip()
+    return str(completion).strip()
+
+
+def as_batch(value: Any, expected_len: int, name: str) -> list[Any]:
+    if isinstance(value, list):
+        if len(value) != expected_len:
+            raise ValueError(f"reward batch field {name} length {len(value)} != completions length {expected_len}")
+        return value
+    if value is None:
+        raise ValueError(f"reward batch missing required field: {name}")
+    return [value for _ in range(expected_len)]
+
+
+def build_grpo_rows(split: str, seeds: list[int]) -> list[dict[str, Any]]:
+    records = build_records(split, seeds)
+    rows: list[dict[str, Any]] = []
+    for record in records:
+        assert_prompt_has_no_hidden_answers(record)
+        rows.append(
+            {
+                "prompt": record["prompt"],
+                "family": record["family"],
+                "seed": int(record["seed"]),
+                "id": record["id"],
+            }
+        )
+    return rows
+
+
+def make_verifier_reward_func(sampled_path: Path, metric_rows: list[dict[str, Any]]):
+    reward_call = 0
+
+    def reward_func(*reward_args: Any, **kwargs: Any) -> list[float]:
+        nonlocal reward_call
+        if "completions" in kwargs:
+            completions = kwargs.pop("completions")
+        elif len(reward_args) == 1:
+            completions = reward_args[0]
+        elif len(reward_args) >= 2:
+            completions = reward_args[1]
+        else:
+            raise ValueError("reward function did not receive completions")
+        if not isinstance(completions, list):
+            completions = [completions]
+        families = as_batch(kwargs.get("family"), len(completions), "family")
+        seeds = as_batch(kwargs.get("seed"), len(completions), "seed")
+        prompt_ids = as_batch(kwargs.get("id"), len(completions), "id")
+
+        rewards: list[float] = []
+        with sampled_path.open("a", encoding="utf-8") as handle:
+            for sample_index, raw_completion in enumerate(completions):
+                family = str(families[sample_index])
+                seed = int(seeds[sample_index])
+                completion = completion_to_text(raw_completion)
+                parsed, parse_error = parse_completion(completion)
+                metrics = score_completion(family, seed, completion)
+                reward = float(metrics["overall_score"])
+                rewards.append(reward)
+                row = {
+                    "reward_call": reward_call,
+                    "sample_index": sample_index,
+                    "prompt_id": str(prompt_ids[sample_index]),
+                    "family": family,
+                    "seed": seed,
+                    "reward": reward,
+                    "overall_score": reward,
+                    "certificate_success": metrics["certificate_success"],
+                    "hidden_regression_pass_rate": metrics["hidden_regression_pass_rate"],
+                    "valid_preservation_rate": metrics["valid_preservation_rate"],
+                    "invalid_json": metrics["invalid_json"],
+                    "overblocking": metrics["overblocking"],
+                    "hardcoded_patch": metrics["hardcoded_patch"],
+                    "parse_error": parse_error or metrics.get("error", ""),
+                }
+                metric_rows.append(row)
+                handle.write(
+                    json.dumps(
+                        {
+                            **row,
+                            "parse_ok": parsed is not None,
+                            "completion": completion,
+                        },
+                        sort_keys=True,
+                    )
+                    + "\n"
+                )
+        reward_call += 1
+        return rewards
+
+    return reward_func
+
+
+def write_training_metrics(output_dir: Path, metric_rows: list[dict[str, Any]], trainer_metrics: dict[str, Any]) -> None:
+    metrics_path = output_dir / "metrics.csv"
+    summary_path = output_dir / "summary.json"
+    with metrics_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=METRIC_FIELDNAMES)
+        writer.writeheader()
+        writer.writerows(metric_rows)
+
+    eval_like_rows = [
+        {
+            "overall_score": row["overall_score"],
+            "certificate_success": row["certificate_success"],
+            "hidden_regression_pass_rate": row["hidden_regression_pass_rate"],
+            "valid_preservation_rate": row["valid_preservation_rate"],
+            "invalid_json": row["invalid_json"],
+            "overblocking": row["overblocking"],
+            "hardcoded_patch": row["hardcoded_patch"],
+        }
+        for row in metric_rows
+    ]
+    verifier_summary = summarize(eval_like_rows) if eval_like_rows else {}
+    summary = {
+        "mode": "real_grpo",
+        "samples_scored": len(metric_rows),
+        "verifier_summary": verifier_summary,
+        "trainer_metrics": trainer_metrics,
+        "note": "Generated from real model completions scored by the deterministic verifier.",
+    }
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    # scripts/make_plots.py reads this file to create real training plots.
+    mirror_path = ROOT / "outputs" / "training_metrics.csv"
+    mirror_path.parent.mkdir(parents=True, exist_ok=True)
+    with mirror_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=METRIC_FIELDNAMES)
+        writer.writeheader()
+        writer.writerows(metric_rows)
+
+
+def build_grpo_config(GRPOConfig: Any, args: argparse.Namespace) -> Any:
+    config_kwargs = {
+        "output_dir": str(args.output_dir),
+        "learning_rate": args.learning_rate,
+        "max_steps": args.max_steps,
+        "num_generations": args.num_generations,
+        "per_device_train_batch_size": args.per_device_train_batch_size,
+        "gradient_accumulation_steps": args.gradient_accumulation_steps,
+        "max_prompt_length": args.max_prompt_length,
+        "max_completion_length": args.max_completion_length,
+        "logging_steps": args.logging_steps,
+        "save_steps": args.save_steps,
+        "bf16": args.bf16,
+        "report_to": [],
+        "remove_unused_columns": False,
+    }
+    accepted = set(inspect.signature(GRPOConfig).parameters)
+    return GRPOConfig(**{key: value for key, value in config_kwargs.items() if key in accepted})
+
+
+def maybe_apply_lora(model: Any, args: argparse.Namespace) -> Any:
+    if not args.use_lora:
+        return model
+    from peft import LoraConfig, TaskType, get_peft_model  # type: ignore
+
+    target_modules = [module.strip() for module in args.lora_target_modules.split(",") if module.strip()]
+    config = LoraConfig(
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
+        bias="none",
+        task_type=TaskType.CAUSAL_LM,
+        target_modules=target_modules or None,
+    )
+    peft_model = get_peft_model(model, config)
+    peft_model.print_trainable_parameters()
+    return peft_model
+
+
+def make_trainer(GRPOTrainer: Any, model: Any, tokenizer: Any, reward_func: Any, config: Any, train_dataset: Any, eval_dataset: Any) -> Any:
+    trainer_kwargs = {
+        "model": model,
+        "reward_funcs": [reward_func],
+        "args": config,
+        "train_dataset": train_dataset,
+        "eval_dataset": eval_dataset,
+    }
+    try:
+        return GRPOTrainer(**trainer_kwargs, processing_class=tokenizer)
+    except TypeError:
+        return GRPOTrainer(**trainer_kwargs, tokenizer=tokenizer)
+
+
+def run_heldout_generation_eval(model: Any, tokenizer: Any, eval_rows: list[dict[str, Any]], args: argparse.Namespace) -> None:
+    import torch  # type: ignore
+
+    heldout_path = args.output_dir / "heldout_eval_completions.jsonl"
+    metrics_path = args.output_dir / "heldout_eval_metrics.csv"
+    summary_path = args.output_dir / "heldout_eval_summary.json"
+    heldout_metrics: list[dict[str, Any]] = []
+    model.eval()
+    device = next(model.parameters()).device
+
+    with heldout_path.open("w", encoding="utf-8") as handle:
+        for row in eval_rows:
+            inputs = tokenizer(row["prompt"], return_tensors="pt", truncation=True, max_length=args.max_prompt_length)
+            inputs = {key: value.to(device) for key, value in inputs.items()}
+            input_length = int(inputs["input_ids"].shape[-1])
+            with torch.no_grad():
+                output_ids = model.generate(
+                    **inputs,
+                    max_new_tokens=args.max_completion_length,
+                    do_sample=False,
+                    pad_token_id=tokenizer.pad_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
+                )
+            completion_ids = output_ids[0][input_length:]
+            completion = tokenizer.decode(completion_ids, skip_special_tokens=True).strip()
+            parsed, parse_error = parse_completion(completion)
+            metrics = score_completion(str(row["family"]), int(row["seed"]), completion)
+            metric_row = {
+                "family": row["family"],
+                "seed": int(row["seed"]),
+                "prompt_id": row["id"],
+                "overall_score": metrics["overall_score"],
+                "certificate_success": metrics["certificate_success"],
+                "hidden_regression_pass_rate": metrics["hidden_regression_pass_rate"],
+                "valid_preservation_rate": metrics["valid_preservation_rate"],
+                "invalid_json": metrics["invalid_json"],
+                "overblocking": metrics["overblocking"],
+                "hardcoded_patch": metrics["hardcoded_patch"],
+                "parse_error": parse_error or metrics.get("error", ""),
+            }
+            heldout_metrics.append(metric_row)
+            handle.write(
+                json.dumps(
+                    {
+                        **metric_row,
+                        "parse_ok": parsed is not None,
+                        "completion": completion,
+                    },
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+
+    with metrics_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(heldout_metrics[0].keys()))
+        writer.writeheader()
+        writer.writerows(heldout_metrics)
+    summary = summarize(heldout_metrics)
+    summary["mode"] = "heldout_generation_eval"
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def run_full_grpo(args: argparse.Namespace) -> None:
+    if not args.confirm_real_training:
+        raise RuntimeError(
+            "Refusing to start paid-capable training without --confirm-real-training. "
+            "Run smoke checks first, then pass the confirmation flag intentionally."
+        )
+    if args.use_unsloth:
+        try:
+            import unsloth  # type: ignore  # noqa: F401
+        except ImportError as exc:
+            raise RuntimeError(
+                "--use-unsloth was requested, but unsloth is not installed in this runtime. "
+                "Use plain TRL first, or install/audit Unsloth before a stretch run."
+            ) from exc
+
+    # Stop-loss rules before any real HF spend:
+    # - run scripts/self_check.py first
+    # - keep max_steps tiny for the first paid run
+    # - stop if invalid JSON remains above 60 percent
+    # - stop if reward rises while certificate success does not
+    # - stop if block-everything or hardcoded behavior appears
+    from datasets import Dataset  # type: ignore
+    from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore
+    from trl import GRPOConfig, GRPOTrainer  # type: ignore
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    sampled_path = args.output_dir / "sampled_generations.jsonl"
+    sampled_path.write_text("", encoding="utf-8")
+    metric_rows: list[dict[str, Any]] = []
+
+    train_rows = build_grpo_rows("train", parse_seed_spec(args.train_seeds))
+    eval_rows = build_grpo_rows("eval", parse_seed_spec(args.eval_seeds))
+    train_dataset = Dataset.from_list(train_rows)
+    eval_dataset = Dataset.from_list(eval_rows)
+
+    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True, padding_side="left")
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(args.model, trust_remote_code=True, device_map="auto")
+    if tokenizer.pad_token_id is not None:
+        model.config.pad_token_id = tokenizer.pad_token_id
+    model = maybe_apply_lora(model, args)
+
+    reward_func = make_verifier_reward_func(sampled_path, metric_rows)
+    config = build_grpo_config(GRPOConfig, args)
+    trainer = make_trainer(GRPOTrainer, model, tokenizer, reward_func, config, train_dataset, eval_dataset)
+    train_result = trainer.train()
+    trainer_metrics = dict(getattr(train_result, "metrics", {}) or {})
+    trainer.save_model(str(args.output_dir / "model"))
+    tokenizer.save_pretrained(str(args.output_dir / "model"))
+    write_training_metrics(args.output_dir, metric_rows, trainer_metrics)
+    run_heldout_generation_eval(model, tokenizer, eval_rows, args)
+
+    print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'metrics.csv'}")
+    print(f"train_json_grpo: real GRPO wrote {sampled_path}")
+    print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'summary.json'}")
+    print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'heldout_eval_summary.json'}")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="TRL/GRPO scaffold for JSON repair-plan training.")
+    parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--confirm-real-training", action="store_true")
+    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--max-steps", type=int, default=20)
+    parser.add_argument("--train-seeds", default="0-59")
+    parser.add_argument("--eval-seeds", default="1000-1014")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "outputs" / "grpo")
+    parser.add_argument("--num-generations", type=int, default=4)
+    parser.add_argument("--use-unsloth", action="store_true")
+    parser.add_argument("--learning-rate", type=float, default=5e-6)
+    parser.add_argument("--per-device-train-batch-size", type=int, default=1)
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    parser.add_argument("--max-prompt-length", type=int, default=1024)
+    parser.add_argument("--max-completion-length", type=int, default=256)
+    parser.add_argument("--logging-steps", type=int, default=1)
+    parser.add_argument("--save-steps", type=int, default=20)
+    parser.add_argument("--bf16", action="store_true")
+    parser.add_argument("--use-lora", action="store_true")
+    parser.add_argument("--lora-r", type=int, default=8)
+    parser.add_argument("--lora-alpha", type=int, default=16)
+    parser.add_argument("--lora-dropout", type=float, default=0.05)
+    parser.add_argument("--lora-target-modules", default="q_proj,k_proj,v_proj,o_proj")
+    return parser
+
+
+def main() -> int:
+    args = build_arg_parser().parse_args()
+    if args.smoke:
+        run_smoke(args)
+        return 0
+    run_full_grpo(args)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,10 @@
+{
+  "episodes": 12,
+  "overall_score": 0.42,
+  "certificate_success_rate": 0.25,
+  "hidden_regression_pass_rate": 0.375,
+  "valid_preservation_rate": 0.25,
+  "invalid_json_rate": 0.25,
+  "overblocking_rate": 0.25,
+  "hardcoded_patch_rate": 0.25
+}

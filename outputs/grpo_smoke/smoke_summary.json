@@ -1,0 +1,10 @@
+{
+  "mode": "smoke",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "samples": 12,
+  "invalid_json_rate": 0.25,
+  "max_steps": 20,
+  "num_generations": 4,
+  "full_grpo_ran": false,
+  "note": "Smoke mode tests parser and verifier reward only. It does not run TRL training."
+}

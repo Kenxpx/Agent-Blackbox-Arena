@@ -1,0 +1,40 @@
+name: agent-blackbox-arena
+version: 0.1.0
+description: "Agent BlackBox Arena: Replay. Repair. Regress. Certify."
+entrypoint: server.app:app
+environment:
+  module: server.agent_blackbox_environment
+  class: AgentBlackBoxEnvironment
+api:
+  style: gym
+  methods:
+    - reset
+    - step
+    - state
+metadata:
+  category: Agent Reliability CI
+  family_implemented:
+    - stale_retrieval
+    - missing_verification
+    - permission_scope
+  families_implemented:
+    - stale_retrieval
+    - missing_verification
+    - permission_scope
+  cpu_runnable: true
+  deterministic_verifier: true
+  no_llm_judge_reward: true
+  no_real_apis: true
+  no_gpu_required_for_environment: true
+actions:
+  - noop
+  - inspect_trace
+  - replay_incident
+  - select_evidence_spans
+  - submit_root_cause
+  - propose_repair_patch
+  - compile_regression_tests
+  - run_visible_replay
+  - run_hidden_regressions
+  - generate_repair_certificate
+  - submit_final

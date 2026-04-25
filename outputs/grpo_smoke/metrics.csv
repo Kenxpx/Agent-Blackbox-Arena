@@ -1,0 +1,13 @@
+step,family,seed,mode,reward,invalid_json,certificate_success,hidden_regression_pass_rate,valid_preservation_rate,overblocking,hardcoded_patch
+0,stale_retrieval,0,oracle,1.0,0.0,1.0,1.0,1.0,0.0,0.0
+0,stale_retrieval,0,invalid_json,0.0,1.0,0.0,0.0,0.0,0.0,0.0
+0,stale_retrieval,0,block_everything,0.13,0.0,0.0,0.5,0.0,1.0,0.0
+0,stale_retrieval,0,hardcoded,0.55,0.0,0.0,0.0,0.0,0.0,1.0
+1,missing_verification,0,oracle,1.0,0.0,1.0,1.0,1.0,0.0,0.0
+1,missing_verification,0,invalid_json,0.0,1.0,0.0,0.0,0.0,0.0,0.0
+1,missing_verification,0,block_everything,0.13,0.0,0.0,0.5,0.0,1.0,0.0
+1,missing_verification,0,hardcoded,0.55,0.0,0.0,0.0,0.0,0.0,1.0
+2,permission_scope,0,oracle,1.0,0.0,1.0,1.0,1.0,0.0,0.0
+2,permission_scope,0,invalid_json,0.0,1.0,0.0,0.0,0.0,0.0,0.0
+2,permission_scope,0,block_everything,0.13,0.0,0.0,0.5,0.0,1.0,0.0
+2,permission_scope,0,hardcoded,0.55,0.0,0.0,0.0,0.0,0.0,1.0

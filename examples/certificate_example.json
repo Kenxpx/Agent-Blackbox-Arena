@@ -1,0 +1,31 @@
+{
+  "certificate_id": "cert_stale_retrieval_042",
+  "incident_id": "stale_retrieval_042",
+  "family": "stale_retrieval",
+  "root_cause": "missing_freshness_check",
+  "evidence_spans": [
+    "s2",
+    "s4"
+  ],
+  "repair_patch": {
+    "require": [
+      "fresh_context_check",
+      "final_action_check"
+    ],
+    "forbid": [
+      "act_on_stale_context"
+    ],
+    "preserve": [
+      "valid_fresh_context_flow"
+    ],
+    "rationale": "Apply missing_freshness_check controls before final action."
+  },
+  "visible_replay_passed": true,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_behavior_preservation_rate": 1.0,
+  "overblocking_detected": false,
+  "hardcoded_patch_detected": false,
+  "repair_score": 94,
+  "recommendation": "redeploy_with_patch_under_bounded_coverage",
+  "bounded_disclaimer": "This certificate is bounded to the generated finite incident family, visible trace, hidden regression variants, and verification horizon. It is not a global safety proof."
+}

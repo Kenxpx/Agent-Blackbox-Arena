@@ -1,0 +1,18 @@
+{
+  "schema": "agent_blackbox_single_turn_json_dataset_v1",
+  "families": [
+    "stale_retrieval",
+    "missing_verification",
+    "permission_scope"
+  ],
+  "train_seeds": [
+    0,
+    1
+  ],
+  "eval_seeds": [
+    1000
+  ],
+  "train_records": 6,
+  "eval_records": 3,
+  "prompt_leakage_check": "passed"
+}

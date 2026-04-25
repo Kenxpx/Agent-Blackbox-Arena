@@ -1,0 +1,264 @@
+# Agent BlackBox Arena
+
+**Replay. Repair. Regress. Certify.**
+
+Agent BlackBox Arena is an OpenEnv-style training environment for Agent Reliability CI. It turns failed AI-agent traces into repair tasks: replay the incident, select evidence, diagnose the root cause, propose a bounded repair patch, run hidden regressions, preserve valid behavior, and generate an Agent Repair Certificate.
+
+> Observability tools show what happened. Agent BlackBox trains agents to replay, repair, regress, and certify what should happen next.
+
+The environment is the core innovation. Training evidence is used to prove that the environment teaches repair behavior; it is not the main novelty by itself.
+
+## Not A Dashboard
+
+This is not an observability dashboard. Tracing tools show model calls, tool calls, handoffs, guardrails, and events. Agent BlackBox targets the next capability gap: after a trace shows an agent failed, what exact control should be repaired, and can that repair survive hidden regression variants?
+
+Observability answers: "What happened?"
+
+Agent BlackBox asks: "What should change, what evidence supports it, and does the repair survive regressions?"
+
+## Environment Loop
+
+```text
+failed trace -> replay -> evidence spans -> root cause -> patch -> hidden regressions -> certificate
+```
+
+Shorthand:
+
+```text
+failed trace -> replay -> evidence -> root cause -> patch -> regressions -> certificate
+```
+
+The required implementation motto is the design:
+
+```text
+Trace is evidence.
+Replay is diagnosis.
+Patch is policy.
+Regression is proof.
+Certificate is trust.
+```
+
+## Environment Innovation
+
+Agent BlackBox is a repair environment, not a static dataset. Each episode has `reset`, `step`, and `state`; actions change the episode state; reward changes as the agent inspects, replays, diagnoses, patches, tests, and certifies; hidden regressions are only exposed as aggregate verifier results.
+
+Five artifacts make the benchmark memorable:
+
+- **Agent Failure Genome**: each family is a compact failure gene connecting a trace signature, root cause, required control, forbidden effect, and valid behavior that must be preserved.
+- **Counterfactual replay**: the agent must replay the visible failure and reason about what would have prevented it.
+- **Trace-to-regression loop**: a failed trace becomes both repair evidence and regression pressure against brittle fixes.
+- **Repair Patch DSL**: repairs are bounded policy patches with `require`, `forbid`, `preserve`, and `rationale`.
+- **Agent Repair Certificate**: a certificate is gated on evidence, root cause, visible replay, hidden regressions, and valid behavior preservation.
+
+## What The Agent Observes
+
+Each episode exposes only public information:
+
+- incident family and scenario
+- public trace spans
+- candidate root causes
+- allowed patch clauses
+- allowed forbidden effects
+- allowed preservation clauses
+- current selected evidence, submitted root cause, patch, visible replay report, hidden regression aggregate, and score channels
+
+Hidden oracle fields, expected patches, raw seeds, hidden variants, and verifier internals are never placed in public observations.
+
+## Actions
+
+The agent can take these actions:
+
+```text
+noop
+inspect_trace
+replay_incident
+select_evidence_spans
+submit_root_cause
+propose_repair_patch
+compile_regression_tests
+run_visible_replay
+run_hidden_regressions
+generate_repair_certificate
+submit_final
+```
+
+Reserved OpenEnv names such as `reset`, `step`, `state`, and `close` are not custom actions.
+
+## MVP Families
+
+The three MVP families are different failure genes in the Agent Failure Genome:
+
+| Family | Root cause | Required controls | Forbidden effect | Preserve clause |
+|---|---|---|---|---|
+| `stale_retrieval` | `missing_freshness_check` | `fresh_context_check`, `final_action_check` | `act_on_stale_context` | `valid_fresh_context_flow` |
+| `missing_verification` | `missing_verification` | `verify_before_irreversible_action`, `final_action_check` | `irreversible_action_without_verification` | `verified_action_flow` |
+| `permission_scope` | `permission_scope` | `role_tool_scope_match`, `final_action_check` | `out_of_scope_tool_call` | `authorized_tool_flow` |
+
+## Reward And Verifier
+
+The reward is deterministic and verifier-based. It measures:
+
+- trace inspected
+- incident replayed
+- evidence spans correct
+- root cause correct
+- patch schema valid
+- patch blocks the failed behavior
+- valid behavior is preserved
+- hidden regressions pass
+- certificate is generated
+
+The verifier penalizes invalid JSON, unknown clauses, wrong root causes, patches without evidence, block-everything behavior, overblocking valid flows, hardcoded incident IDs, hidden-test probing, premature certificates, timeouts, and repeated hidden-regression calls.
+
+## Why Hidden Regressions Matter
+
+Visible replay proves the patch handles the public failure. Hidden regressions test variants with renamed traces, shifted metadata, and valid counterfactual cases. This is what prevents a model from merely matching the visible trace instead of learning the repair control.
+
+## Why Bad Repairs Fail
+
+Block-everything fails because valid flows must still pass. For example, blocking every tool call may stop a failure but destroys authorized behavior, so valid preservation drops to zero.
+
+Hardcoded patches fail because the verifier detects incident IDs and hidden-test probes. A patch must name general controls like `fresh_context_check`, not memorize `stale_retrieval_004`.
+
+## Baseline Results
+
+Current results are baseline and smoke results. Trained-model results will be added after a real GRPO run.
+
+These baseline results are generated from `outputs/results.csv` over 5 baselines x 3 families x 10 deterministic seeds.
+
+| Baseline | Overall score | Certificate success | Hidden regression pass | Valid preservation | Overblocking | Hardcoded patch |
+|---|---:|---:|---:|---:|---:|---:|
+| `random_patch` | 0.144 | 0.000 | 0.000 | 0.000 | 0.100 | 0.000 |
+| `explanation_only` | 0.350 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
+| `block_everything` | 0.130 | 0.000 | 0.500 | 0.000 | 1.000 | 0.000 |
+| `visible_overfit` | 0.550 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+| `oracle_correct_solver_for_sanity` | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 | 0.000 |
+
+![Baseline overall scores](outputs/baseline_scores.png)
+
+![Certificate success rate](outputs/certificate_success_rate.png)
+
+![Hidden regression pass rate](outputs/hidden_regression_pass_rate.png)
+
+![Valid preservation rate](outputs/valid_preservation_rate.png)
+
+## Training Status
+
+Training scaffold and smoke tests pass. Real GRPO training has not been run yet and no trained improvement is claimed.
+
+Training is framed as evidence for the environment: a model should improve only if the replay, patch, regression, and certificate loop gives a learnable signal.
+
+Available scaffold files:
+
+- `training/make_dataset.py`
+- `training/train_json_grpo.py`
+- `training/evaluate_model.py`
+- `training/train_sft_warmstart.py`
+
+Smoke outputs:
+
+- `outputs/training_smoke/`
+- `outputs/grpo_smoke/`
+- `outputs/eval_smoke/`
+- `outputs/sft_smoke/`
+
+## Run Locally
+
+Install:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run tests:
+
+```bash
+python -m pytest
+```
+
+Run the full self-check:
+
+```bash
+python scripts/self_check.py
+```
+
+Run baselines and baseline plots:
+
+```bash
+python scripts/evaluate_baselines.py
+python scripts/make_plots.py
+```
+
+Run training smoke commands:
+
+```bash
+python training/make_dataset.py --smoke --output-dir outputs/training_smoke
+python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke
+python training/evaluate_model.py --smoke --output-dir outputs/eval_smoke
+python training/train_sft_warmstart.py --smoke --output-dir outputs/sft_smoke
+```
+
+Run Space smoke:
+
+```bash
+python scripts/space_smoke.py
+```
+
+Run the server:
+
+```bash
+uvicorn server.app:app --host 0.0.0.0 --port 8000
+```
+
+## Future Real GRPO Command
+
+Use only after all smoke checks are green and GPU budget is approved:
+
+```bash
+pip install -e ".[training]"
+
+python training/train_json_grpo.py \
+  --confirm-real-training \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --max-steps 10 \
+  --train-seeds 0-2 \
+  --eval-seeds 1000 \
+  --output-dir outputs/grpo_tiny_hf \
+  --num-generations 2 \
+  --per-device-train-batch-size 1 \
+  --gradient-accumulation-steps 1 \
+  --learning-rate 5e-6 \
+  --save-steps 10
+```
+
+The non-smoke path is guarded by `--confirm-real-training`. It uses real model completions scored by the deterministic verifier, then writes `metrics.csv`, `summary.json`, and `sampled_generations.jsonl`.
+
+## Hugging Face Space
+
+Placeholder Space link: `TODO_ADD_HF_SPACE_LINK`
+
+The Space runtime is CPU-runnable:
+
+- entrypoint: `server.app:app`
+- server: FastAPI/Uvicorn
+- manifest: `openenv.yaml`
+- no GPU required for environment evaluation
+- no live external APIs required
+
+## Safety Scope
+
+Agent BlackBox Arena uses synthetic symbolic traces only. It has no real credentials, live APIs, browser automation, shell execution inside the environment, exploit payloads, offensive tooling, or real user data.
+
+## Bounded Certificate Disclaimer
+
+The Agent Repair Certificate is bounded to the generated finite incident family, visible trace, hidden regression variants, and verification horizon. It is not a global safety proof.
+
+## Links To Add Before Final Submission
+
+- Hugging Face Space: `TODO_ADD_HF_SPACE_LINK`
+- Video/blog/slides: `TODO_ADD_VIDEO_OR_BLOG_LINK`
+- Real training plots after a real run: `TODO_ADD_REAL_TRAINING_PLOTS`
+
+## No Fake Results
+
+This repo does not claim trained model improvement yet. Current results are baseline and smoke results only. Trained-model results will be added only after a real GRPO run with saved logs and plots.

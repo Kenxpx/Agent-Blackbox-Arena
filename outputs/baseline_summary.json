@@ -1,0 +1,72 @@
+{
+  "schema": "agent_blackbox_baseline_summary_v1",
+  "families": [
+    "stale_retrieval",
+    "missing_verification",
+    "permission_scope"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "baselines": {
+    "random_patch": {
+      "episodes": 30,
+      "overall_score": 0.144,
+      "certificate_success_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "valid_preservation_rate": 0.0,
+      "overblocking_rate": 0.1,
+      "hardcoded_patch_rate": 0.0,
+      "invalid_json_rate": 0.0
+    },
+    "explanation_only": {
+      "episodes": 30,
+      "overall_score": 0.35,
+      "certificate_success_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "valid_preservation_rate": 0.0,
+      "overblocking_rate": 0.0,
+      "hardcoded_patch_rate": 0.0,
+      "invalid_json_rate": 0.0
+    },
+    "block_everything": {
+      "episodes": 30,
+      "overall_score": 0.13,
+      "certificate_success_rate": 0.0,
+      "hidden_regression_pass_rate": 0.5,
+      "valid_preservation_rate": 0.0,
+      "overblocking_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "invalid_json_rate": 0.0
+    },
+    "visible_overfit": {
+      "episodes": 30,
+      "overall_score": 0.55,
+      "certificate_success_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "valid_preservation_rate": 0.0,
+      "overblocking_rate": 0.0,
+      "hardcoded_patch_rate": 1.0,
+      "invalid_json_rate": 0.0
+    },
+    "oracle_correct_solver_for_sanity": {
+      "episodes": 30,
+      "overall_score": 1.0,
+      "certificate_success_rate": 1.0,
+      "hidden_regression_pass_rate": 1.0,
+      "valid_preservation_rate": 1.0,
+      "overblocking_rate": 0.0,
+      "hardcoded_patch_rate": 0.0,
+      "invalid_json_rate": 0.0
+    }
+  }
+}
