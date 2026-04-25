@@ -70,6 +70,41 @@ def generate_model_completion(model: Any, tokenizer: Any, prompt: Any, args: arg
     return tokenizer.decode(completion_ids, skip_special_tokens=True).strip()
 
 
+def generate_model_completions(model: Any, tokenizer: Any, prompts: list[Any], args: argparse.Namespace) -> list[str]:
+    import torch  # type: ignore
+
+    prompt_texts = [render_prompt_for_generation(tokenizer, prompt) for prompt in prompts]
+    device = next(model.parameters()).device
+    inputs = tokenizer(
+        prompt_texts,
+        return_tensors="pt",
+        truncation=True,
+        max_length=args.max_prompt_length,
+        padding=True,
+    )
+    inputs = {key: value.to(device) for key, value in inputs.items()}
+    input_width = int(inputs["input_ids"].shape[-1])
+    generation_kwargs = {
+        "max_new_tokens": args.max_completion_length,
+        "do_sample": bool(args.do_sample),
+        "pad_token_id": tokenizer.pad_token_id,
+        "eos_token_id": tokenizer.eos_token_id,
+    }
+    if args.do_sample:
+        generation_kwargs["temperature"] = args.temperature
+        generation_kwargs["top_p"] = args.top_p
+    with torch.no_grad():
+        output_ids = model.generate(
+            **inputs,
+            **generation_kwargs,
+        )
+    completions: list[str] = []
+    for row_index in range(output_ids.shape[0]):
+        completion_ids = output_ids[row_index][input_width:]
+        completions.append(tokenizer.decode(completion_ids, skip_special_tokens=True).strip())
+    return completions
+
+
 def run_mock_eval(eval_rows: list[dict[str, Any]], mode: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     completions: list[dict[str, Any]] = []
     metrics: list[dict[str, Any]] = []
@@ -112,29 +147,38 @@ def run_model_eval(eval_rows: list[dict[str, Any]], args: argparse.Namespace) ->
 
     completions: list[dict[str, Any]] = []
     metrics: list[dict[str, Any]] = []
-    for row in eval_rows:
-        completion = generate_model_completion(model, tokenizer, row["prompt"], args)
-        parsed, parse_error = parse_completion(completion)
-        scored = score_completion(row["family"], int(row["seed"]), completion)
-        metric_row = {
-            "model_label": args.model_label,
-            "prompt_id": row["id"],
-            "family": row["family"],
-            "seed": int(row["seed"]),
-            "prompt_variant": row["prompt_variant"],
-            **{key: scored[key] for key in [
-                "overall_score",
-                "certificate_success",
-                "hidden_regression_pass_rate",
-                "valid_preservation_rate",
-                "invalid_json",
-                "overblocking",
-                "hardcoded_patch",
-            ]},
-            "parse_error": parse_error or scored.get("error", ""),
-        }
-        metrics.append(metric_row)
-        completions.append({**metric_row, "parse_ok": parsed is not None, "completion": completion})
+    batch_size = max(1, int(args.batch_size))
+    total = len(eval_rows)
+    for start in range(0, total, batch_size):
+        batch = eval_rows[start : start + batch_size]
+        batch_completions = generate_model_completions(model, tokenizer, [row["prompt"] for row in batch], args)
+        for row, completion in zip(batch, batch_completions):
+            parsed, parse_error = parse_completion(completion)
+            scored = score_completion(row["family"], int(row["seed"]), completion)
+            metric_row = {
+                "model_label": args.model_label,
+                "prompt_id": row["id"],
+                "family": row["family"],
+                "seed": int(row["seed"]),
+                "prompt_variant": row["prompt_variant"],
+                **{key: scored[key] for key in [
+                    "overall_score",
+                    "certificate_success",
+                    "hidden_regression_pass_rate",
+                    "valid_preservation_rate",
+                    "invalid_json",
+                    "overblocking",
+                    "hardcoded_patch",
+                ]},
+                "parse_error": parse_error or scored.get("error", ""),
+            }
+            metrics.append(metric_row)
+            completions.append({**metric_row, "parse_ok": parsed is not None, "completion": completion})
+        print(
+            "evaluate_checkpoint: "
+            f"label={args.model_label} variant={args.prompt_variant} progress={min(start + len(batch), total)}/{total}",
+            flush=True,
+        )
     return completions, metrics
 
 
@@ -171,6 +215,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mock-policy", choices=["oracle", "invalid_json", "wrapped_json", "block_everything", "hardcoded"], default=None)
     parser.add_argument("--max-prompt-length", type=int, default=1024)
     parser.add_argument("--max-completion-length", type=int, default=160)
+    parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--torch-dtype", choices=["auto", "float16", "bfloat16", "float32", "none"], default="auto")
     parser.add_argument("--do-sample", action="store_true")
     parser.add_argument("--temperature", type=float, default=0.2)

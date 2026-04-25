@@ -396,6 +396,15 @@ Formal local audit result:
 - Incident IDs are not present in prompts and are not usable for hardcoding.
 - Local trained checkpoints are not present at `outputs/sft_qwen25_05b_json/model` or `outputs/grpo_tiny_hf/model`, so larger real model evaluation must run in an HF job or another runtime where the checkpoints are recreated or available.
 
+First larger-eval HF attempt:
+
+- Job ID: `69ed520cd2c8bd8662bcea54`
+- Flavor: `t4-small`
+- Status: canceled intentionally.
+- Reason: the 150-episode base eval over seeds `1000-1049` was not cheap enough and produced no summary after setup plus a long quiet generation window.
+- Follow-up fix: `training/evaluate_checkpoint.py` now supports batched generation and progress logging.
+- Next run should use the minimum allowed eval range `1000-1019` before any 1.5B spend.
+
 Safe next evidence claim, if the larger eval passes:
 
 - "Base 0.5B collapsed into invalid JSON."
