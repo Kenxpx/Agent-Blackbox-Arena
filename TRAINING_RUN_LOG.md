@@ -405,6 +405,114 @@ First larger-eval HF attempt:
 - Follow-up fix: `training/evaluate_checkpoint.py` now supports batched generation and progress logging.
 - Next run should use the minimum allowed eval range `1000-1019` before any 1.5B spend.
 
+## Controlled 0.5B Larger Eval Job
+
+Job ID: `69ed549bd70108f37acdf273`
+
+Flavor: `t4-small`
+
+Status: `COMPLETED`
+
+Commit used in job: `f86f38f`
+
+Purpose:
+
+- recreate the 0.5B SFT checkpoint inside the same job
+- evaluate SFT on held-out seeds `1000-1019`
+- run 0.5B GRPO validation from the SFT checkpoint
+- evaluate SFT+GRPO on held-out seeds `1000-1019`
+- evaluate SFT+GRPO on `shuffled_surface_blind` challenge prompts
+- create plots only from real model-eval summaries
+
+Base 0.5B zero-shot summary:
+
+```json
+{
+  "episodes": 60,
+  "overall_score": 0.0,
+  "certificate_success_rate": 0.0,
+  "hidden_regression_pass_rate": 0.0,
+  "valid_preservation_rate": 0.0,
+  "invalid_json_rate": 1.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+SFT larger held-out summary:
+
+```json
+{
+  "episodes": 60,
+  "overall_score": 1.0,
+  "certificate_success_rate": 1.0,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_preservation_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+SFT+GRPO larger held-out summary:
+
+```json
+{
+  "episodes": 60,
+  "overall_score": 1.0,
+  "certificate_success_rate": 1.0,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_preservation_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+SFT+GRPO challenge summary:
+
+```json
+{
+  "episodes": 60,
+  "prompt_variant": "shuffled_surface_blind",
+  "overall_score": 0.78,
+  "certificate_success_rate": 1.0,
+  "hidden_regression_pass_rate": 1.0,
+  "valid_preservation_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0
+}
+```
+
+Plots created inside the HF job:
+
+- `outputs/model_eval/baseline_vs_trained_score.png`
+- `outputs/model_eval/certificate_success_rate.png`
+- `outputs/model_eval/hidden_regression_pass_rate.png`
+- `outputs/model_eval/invalid_json_rate.png`
+- `outputs/model_eval/valid_preservation_rate.png`
+- `outputs/model_eval/challenge/baseline_vs_trained_score.png`
+- `outputs/model_eval/challenge/certificate_success_rate.png`
+- `outputs/model_eval/challenge/hidden_regression_pass_rate.png`
+- `outputs/model_eval/challenge/invalid_json_rate.png`
+- `outputs/model_eval/challenge/valid_preservation_rate.png`
+
+Interpretation:
+
+- The base 0.5B model fails the task by emitting invalid JSON.
+- The small SFT warmstart fixes strict repair-plan generation on the reported held-out seeds.
+- The GRPO validation remains saturated after SFT: verifier reward is already perfect, with `reward_std=0` and `frac_reward_zero_std=1`.
+- The challenge eval does not collapse: certificate success, hidden regression pass, valid preservation, invalid JSON, overblocking, and hardcoding are all healthy.
+- The challenge eval overall score is `0.78`, so it reveals a useful harder surface-generalization gap even though the final certificate path succeeds.
+
+Run 2 decision after this job:
+
+- **GO for a cautious 1.5B run only if the next objective is stronger challenge/generalization performance.**
+- **NO-GO for claiming GRPO learned from scratch.**
+- **GO for claiming 0.5B SFT fixed the invalid JSON bottleneck on reported held-out seeds.**
+- **GO for claiming the SFT+GRPO checkpoint passed reported hidden regression/certificate metrics, including the challenge variant, with bounded caveats.**
+
 Safe next evidence claim, if the larger eval passes:
 
 - "Base 0.5B collapsed into invalid JSON."
