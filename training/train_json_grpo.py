@@ -406,6 +406,9 @@ def build_grpo_config(GRPOConfig: Any, args: argparse.Namespace) -> Any:
 def maybe_apply_lora(model: Any, args: argparse.Namespace) -> Any:
     if not args.use_lora:
         return model
+    if hasattr(model, "peft_config"):
+        print("train_json_grpo: model already has a PEFT adapter; continuing training without adding a second LoRA adapter.")
+        return model
     from peft import LoraConfig, TaskType, get_peft_model  # type: ignore
 
     target_modules = [module.strip() for module in args.lora_target_modules.split(",") if module.strip()]

@@ -210,6 +210,12 @@ python training/evaluate_checkpoint.py \
 
 phase "Write fast SFT gate report"
 write_fast_sft_gate_report
+print_json_if_exists "SFT TRAIN SUMMARY" "${SFT_DIR}/sft_summary.json"
+print_json_if_exists "SFT HELDOUT SUMMARY" "${SFT_DIR}/heldout_eval_summary.json"
+print_json_if_exists "FAST SFT GATE REPORT" "${REPORT_ROOT}/fast_sft_gate_report.json"
+print_json_if_exists "SFT STANDARD SUMMARY" "${EVAL_ROOT}/sft_${MODEL_LABEL}_standard/summary.json"
+print_json_if_exists "SFT SHUFFLED_SURFACE_BLIND SUMMARY" "${EVAL_ROOT}/sft_${MODEL_LABEL}_shuffled_surface_blind/summary.json"
+print_json_if_exists "SFT COMBINED_BLIND_SHUFFLE SUMMARY" "${EVAL_ROOT}/sft_${MODEL_LABEL}_combined_blind_shuffle/summary.json"
 
 if [[ "${RUN_GRPO}" == "1" ]]; then
   SFT_STATUS="$(gate_status)"
@@ -247,7 +253,7 @@ if [[ "${RUN_GRPO}" == "1" ]]; then
       --model-label "sft_grpo_${MODEL_LABEL}_standard" \
       --eval-seeds "${EVAL_SEEDS}" \
       --batch-size "${EVAL_BATCH_SIZE}" \
-      --output-dir "${EVAL_ROOT}/sft_grpo_${MODEL_LABEL}_standard"
+      --output-dir "${EVAL_ROOT}/sft_grpo_${MODEL_LABEL}_standard" || echo "GRPO_EVAL_FAILED: standard"
 
     phase "Evaluate fast SFT+GRPO shuffled_surface_blind"
     python training/evaluate_checkpoint.py \
@@ -256,7 +262,7 @@ if [[ "${RUN_GRPO}" == "1" ]]; then
       --eval-seeds "${EVAL_SEEDS}" \
       --prompt-variant shuffled_surface_blind \
       --batch-size "${EVAL_BATCH_SIZE}" \
-      --output-dir "${EVAL_ROOT}/sft_grpo_${MODEL_LABEL}_shuffled_surface_blind"
+      --output-dir "${EVAL_ROOT}/sft_grpo_${MODEL_LABEL}_shuffled_surface_blind" || echo "GRPO_EVAL_FAILED: shuffled_surface_blind"
 
     phase "Evaluate fast SFT+GRPO combined_blind_shuffle"
     python training/evaluate_checkpoint.py \
@@ -265,7 +271,7 @@ if [[ "${RUN_GRPO}" == "1" ]]; then
       --eval-seeds "${EVAL_SEEDS}" \
       --prompt-variant combined_blind_shuffle \
       --batch-size "${EVAL_BATCH_SIZE}" \
-      --output-dir "${EVAL_ROOT}/sft_grpo_${MODEL_LABEL}_combined_blind_shuffle"
+      --output-dir "${EVAL_ROOT}/sft_grpo_${MODEL_LABEL}_combined_blind_shuffle" || echo "GRPO_EVAL_FAILED: combined_blind_shuffle"
   fi
 else
   echo "RUN_GRPO=0, so GRPO is skipped."
