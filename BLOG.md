@@ -123,13 +123,15 @@ I also kept the failed and intermediate runs in the logs. That is intentional. I
 ## Evidence
 
 - HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
-- Training notebook: [notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb](notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb)
-- README: [README.md](README.md)
-- Submission evidence: [SUBMISSION_EVIDENCE.md](SUBMISSION_EVIDENCE.md)
-- Final audit: [FINAL_SUBMISSION_AUDIT.md](FINAL_SUBMISSION_AUDIT.md)
-- Recent H200 report: [FINAL_RECENT_H200_RUNS_REPORT.md](FINAL_RECENT_H200_RUNS_REPORT.md)
-- Final assets: [docs/final_assets/](docs/final_assets/)
-- Final H200 log: [logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt](logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt)
+- Live app: https://kenxpx-agent-blackbox-arena.hf.space/
+- Training notebook: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb
+- README: https://github.com/Kenxpx/Agent-Blackbox-Arena#readme
+- Submission evidence: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/SUBMISSION_EVIDENCE.md
+- Final audit: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/FINAL_SUBMISSION_AUDIT.md
+- Judging criteria alignment: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/JUDGING_CRITERIA_ALIGNMENT.md
+- Recent H200 report: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/FINAL_RECENT_H200_RUNS_REPORT.md
+- Final assets: https://github.com/Kenxpx/Agent-Blackbox-Arena/tree/main/docs/final_assets
+- Final H200 log: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt
 
 ## Boundaries
 
