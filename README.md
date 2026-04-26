@@ -33,6 +33,7 @@ Start here:
 
 - Live environment: https://kenxpx-agent-blackbox-arena.hf.space/
 - Submission checklist: [`FINAL_FORM_SUBMISSION_CHECKLIST.md`](FINAL_FORM_SUBMISSION_CHECKLIST.md)
+- Judging criteria alignment: [`JUDGING_CRITERIA_ALIGNMENT.md`](JUDGING_CRITERIA_ALIGNMENT.md)
 - Blog writeup: [`BLOG.md`](BLOG.md)
 - Training rerun notebook: [`notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb`](notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb)
 - Evidence ledger: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md)

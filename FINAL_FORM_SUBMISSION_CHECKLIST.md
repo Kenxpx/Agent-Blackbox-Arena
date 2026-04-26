@@ -10,6 +10,7 @@ Use this file for the OpenEnv Hackathon form and final judge audit. The selected
 | HF blog file URL | AVAILABLE AFTER SPACE UPLOAD | https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena/blob/main/BLOG.md | Use GitHub URL above if HF file view is not refreshed yet. |
 | HF notebook file URL | AVAILABLE AFTER SPACE UPLOAD | https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb | Use GitHub URL above if HF file view is not refreshed yet. |
 | README URL | READY | https://github.com/Kenxpx/Agent-Blackbox-Arena#readme | Links Space, notebook, blog, results, plots, and evidence. |
+| Judging criteria alignment | READY | `JUDGING_CRITERIA_ALIGNMENT.md` | Maps the submission to the 40/30/20/10 judging rubric and minimum requirements. |
 | Final selected model | READY | `Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200` | Final output root: `outputs/larger_models/qwen3_4b_2507_final_h200/`. |
 | Final H200 job log | READY | `logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt` | Captured final HF Jobs log tail; no token or checkpoint included. |
 | Final metrics | READY | `docs/final_assets/metrics/final_qwen3_4b_metrics.json` | Standard `1.0000`, shuffled `0.9557`, combined `0.9367`, invalid JSON `0.0000`. |
