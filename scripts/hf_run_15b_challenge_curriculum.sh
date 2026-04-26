@@ -7,7 +7,7 @@ if [[ "${CONFIRM_15B_CHALLENGE_PASSED:-0}" != "1" ]]; then
   exit 2
 fi
 
-RUN_GRPO="${RUN_GRPO:-0}"
+RUN_GRPO="${RUN_GRPO:-1}"
 MODEL_ID="${MODEL_ID:-Qwen/Qwen2.5-1.5B-Instruct}"
 SFT_DIR="${SFT_DIR:-outputs/sft_qwen25_15b_challenge_curriculum}"
 GRPO_DIR="${GRPO_DIR:-outputs/grpo_15b_challenge_curriculum}"

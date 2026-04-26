@@ -407,7 +407,7 @@ hf jobs run \
   "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && CONFIRM_15B_CHALLENGE_PASSED=1 bash scripts/hf_run_15b_challenge_curriculum.sh"
 ```
 
-The 1.5B script uses `Qwen/Qwen2.5-1.5B-Instruct`, LoRA SFT on mixed standard + challenge variants, standard / `shuffled_surface_blind` / `combined_blind_shuffle` eval, and optional GRPO only when `RUN_GRPO=1`. If the model is unavailable or unstable in the runtime, stop and choose the closest small Qwen instruct model. Do not jump straight to 4B without a working 1.5B log.
+The 1.5B script uses `Qwen/Qwen2.5-1.5B-Instruct`, LoRA SFT on mixed standard + challenge variants, standard / `shuffled_surface_blind` / `combined_blind_shuffle` eval, and GRPO enabled by default because the post-curriculum 0.5B challenge result is not saturated. Set `RUN_GRPO=0` only for a diagnostic SFT-only rerun. If the model is unavailable or unstable in the runtime, stop and choose the closest small Qwen instruct model. Do not jump straight to 4B without a working 1.5B log.
 
 ## Run 3: 4B Stretch Locked HF Command
 
