@@ -72,3 +72,21 @@ def test_certificate_requires_correct_evidence_not_only_patch_success(family):
     assert obs["repair_certificate"] is None
     assert obs["score_channels"]["evidence_spans_correct"] == 0.0
     assert "certificate_before_verifier" in obs["audit_flags"]
+
+
+@pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)
+def test_certificate_requires_replay_completed(family):
+    spec = family_spec(family)
+    env = AgentBlackBoxEnvironment()
+    env.reset(seed=42, family=family)
+    env.step("inspect_trace")
+    env.step({"action": "select_evidence_spans", "payload": {"evidence_spans": spec["evidence_spans"]}})
+    env.step({"action": "submit_root_cause", "payload": {"root_cause": spec["root_cause"]}})
+    env.step({"action": "propose_repair_patch", "payload": {"patch": spec["patch"]}})
+    env.step("run_visible_replay")
+    env.step("run_hidden_regressions")
+    obs = env.step("generate_repair_certificate")["observation"]
+
+    assert obs["repair_certificate"] is None
+    assert obs["score_channels"]["incident_replayed"] == 0.0
+    assert "certificate_before_verifier" in obs["audit_flags"]

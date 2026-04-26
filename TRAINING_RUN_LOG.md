@@ -563,3 +563,38 @@ Decision after hardening:
 - The previous 0.5B same-job result remains valid historical evidence for the pre-hardening pipeline.
 - Final claims should use a fresh post-hardening 0.5B same-job evaluation.
 - 1.5B remains approved only after the post-hardening 0.5B evaluation does not collapse on challenge prompts.
+
+## Rank-1 Anti-Leakage Challenge Patch
+
+Status: `COMPLETED LOCALLY`
+
+Purpose:
+
+- add a harder challenge surface before any 1.5B spend
+- audit candidate answer positions across train, standard eval, and challenge eval
+- make the certificate gate match the full repair chain
+- avoid presenting saturated GRPO as learning
+
+Additional changes:
+
+- Added `combined_blind_shuffle`, which combines shuffled spans, blinded family label, rewritten surface wording, shuffled candidates, and renamed service/requester/capability entities.
+- Candidate answer-position audit now reports distributions for:
+  - `sft_train_standard`
+  - `standard_eval`
+  - `shuffled_surface_blind_eval`
+  - `combined_blind_shuffle_eval`
+- Certificate generation now also requires replay completion and explicit no-overblocking/no-hardcoding hidden regression flags.
+- Tests increased to `53 passed`.
+
+Local verification:
+
+- `python training/train_sft_warmstart.py --smoke --output-dir outputs/sft_smoke`: passed
+- `python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke`: passed
+- `python training/evaluate_model.py --smoke --output-dir outputs/eval_smoke`: passed
+- `python scripts/self_check.py`: passed
+- `python -m pytest`: `53 passed`
+
+Decision:
+
+- **GO** for one controlled post-hardening 0.5B rerun.
+- **NO-GO** for 1.5B until the post-hardening 0.5B standard, `shuffled_surface_blind`, and `combined_blind_shuffle` summaries are inspected.

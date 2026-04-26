@@ -5,7 +5,7 @@ import pytest
 from agent_blackbox.incidents import IMPLEMENTED_FAMILIES, generate_incident
 from agent_blackbox.models import FORBIDDEN_PUBLIC_KEYS
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
-from training.make_dataset import ordered_candidates_for_prompt
+from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, ordered_candidates_for_prompt
 
 
 def family_spec(family):
@@ -96,20 +96,42 @@ def test_hidden_regression_summary_is_aggregate_only(family):
 @pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)
 def test_training_prompt_candidate_order_is_not_answer_position_shortcut(family):
     _, oracle = generate_incident(family=family, seed=42)
-    root_positions = []
-    forbid_positions = []
-    preserve_positions = []
-    require_first_clause_positions = []
+    slices = [
+        (range(0, 20), "standard"),
+        (range(1000, 1020), "standard"),
+        (range(1000, 1020), "shuffled_surface_blind"),
+        (range(1000, 1020), "combined_blind_shuffle"),
+    ]
 
-    for seed in range(1000, 1020):
-        candidates = ordered_candidates_for_prompt(family, seed, prompt_variant="shuffled_surface_blind")
-        root_positions.append(candidates["root_cause"].index(oracle.true_root_cause))
-        forbid_positions.append(candidates["forbid"].index(oracle.expected_forbid_effects[0]))
-        preserve_positions.append(candidates["preserve"].index(oracle.expected_preserve_clauses[0]))
-        require_first_clause_positions.append(candidates["require"].index(oracle.answer_key_clause_ids[0]))
+    for seeds, prompt_variant in slices:
+        root_positions = []
+        forbid_positions = []
+        preserve_positions = []
+        require_first_clause_positions = []
+        for seed in seeds:
+            candidates = ordered_candidates_for_prompt(family, seed, prompt_variant=prompt_variant)
+            root_positions.append(candidates["root_cause"].index(oracle.true_root_cause))
+            forbid_positions.append(candidates["forbid"].index(oracle.expected_forbid_effects[0]))
+            preserve_positions.append(candidates["preserve"].index(oracle.expected_preserve_clauses[0]))
+            require_first_clause_positions.append(candidates["require"].index(oracle.answer_key_clause_ids[0]))
 
-    assert len(set(root_positions)) > 1
-    assert len(set(forbid_positions)) > 1
-    assert len(set(preserve_positions)) > 1
-    assert len(set(require_first_clause_positions)) > 1
-    assert not all(position == 0 for position in root_positions)
+        assert len(set(root_positions)) > 1, (family, prompt_variant, root_positions)
+        assert len(set(forbid_positions)) > 1, (family, prompt_variant, forbid_positions)
+        assert len(set(preserve_positions)) > 1, (family, prompt_variant, preserve_positions)
+        assert len(set(require_first_clause_positions)) > 1, (family, prompt_variant, require_first_clause_positions)
+        assert not all(position == 0 for position in root_positions)
+
+
+@pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)
+def test_combined_blind_shuffle_changes_surface_without_leaking_hidden_answers(family):
+    record = build_records("eval", [1000], prompt_variant="combined_blind_shuffle")[IMPLEMENTED_FAMILIES.index(family)]
+    assert record["family"] == family
+    assert_prompt_has_no_hidden_answers(record)
+    encoded_prompt = json.dumps(record["prompt"], ensure_ascii=False)
+
+    assert "family: agent_reliability_failure" in encoded_prompt
+    assert f"family: {family}" not in encoded_prompt
+    assert "combined_blind_shuffle" in encoded_prompt
+    assert any(name in encoded_prompt for name in ["AtlasDesk", "NimbusOps", "LedgerFlow", "HelioCRM", "VectorCare"])
+    assert "User requested" not in encoded_prompt
+    assert f"{family}_1000" not in encoded_prompt

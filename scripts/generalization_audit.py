@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import json
 import sys
 from pathlib import Path
@@ -29,6 +30,13 @@ SFT_TRAIN_SEEDS = "0-5"
 GRPO_TRAIN_SEEDS = "0-2"
 LARGE_EVAL_SEEDS = "1000-1049"
 CHALLENGE_VARIANT = "shuffled_surface_blind"
+HARD_CHALLENGE_VARIANT = "combined_blind_shuffle"
+AUDIT_POSITION_SLICES = {
+    "sft_train_standard": (SFT_TRAIN_SEEDS, "standard"),
+    "standard_eval": (LARGE_EVAL_SEEDS, "standard"),
+    "shuffled_surface_blind_eval": ("1000-1019", CHALLENGE_VARIANT),
+    "combined_blind_shuffle_eval": ("1000-1019", HARD_CHALLENGE_VARIANT),
+}
 
 HF_EVAL_COMMAND = """hf jobs run \\
   --flavor t4-small \\
@@ -37,7 +45,7 @@ HF_EVAL_COMMAND = """hf jobs run \\
   -- \\
   bash \\
   -lc \\
-  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && python scripts/self_check.py && python training/evaluate_checkpoint.py --model Qwen/Qwen2.5-0.5B-Instruct --model-label base_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/base_0_5b_standard && python training/train_sft_warmstart.py --confirm-real-training --model Qwen/Qwen2.5-0.5B-Instruct --max-steps 30 --train-seeds 0-5 --eval-seeds 1000-1002 --output-dir outputs/sft_qwen25_05b_json --per-device-train-batch-size 1 --gradient-accumulation-steps 1 --learning-rate 1e-5 --max-completion-length 160 --save-steps 30 && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/sft_0_5b_standard && python training/train_json_grpo.py --confirm-real-training --model outputs/sft_qwen25_05b_json/model --max-steps 10 --train-seeds 0-2 --eval-seeds 1000 --output-dir outputs/grpo_tiny_hf --num-generations 2 --per-device-train-batch-size 2 --gradient-accumulation-steps 1 --learning-rate 5e-6 --max-completion-length 160 --format-reward-weight 0.2 --save-steps 10 && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/sft_grpo_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_challenge --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_grpo_0_5b_challenge && python scripts/plot_model_eval.py --summary base=outputs/model_eval/base_0_5b_standard/summary.json --summary sft=outputs/model_eval/sft_0_5b_standard/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_standard/summary.json --output-dir outputs/model_eval && echo '=== BASE SUMMARY ===' && cat outputs/model_eval/base_0_5b_standard/summary.json && echo '=== SFT SUMMARY ===' && cat outputs/model_eval/sft_0_5b_standard/summary.json && echo '=== SFT+GRPO SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_standard/summary.json && echo '=== CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_challenge/summary.json"
+  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && python scripts/self_check.py && python training/evaluate_checkpoint.py --model Qwen/Qwen2.5-0.5B-Instruct --model-label base_0_5b --eval-seeds 1000-1019 --output-dir outputs/model_eval/base_0_5b_standard && python training/train_sft_warmstart.py --confirm-real-training --model Qwen/Qwen2.5-0.5B-Instruct --max-steps 30 --train-seeds 0-5 --eval-seeds 1000-1002 --output-dir outputs/sft_qwen25_05b_json --per-device-train-batch-size 1 --gradient-accumulation-steps 1 --learning-rate 1e-5 --max-completion-length 160 --save-steps 30 && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b --eval-seeds 1000-1019 --output-dir outputs/model_eval/sft_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b_shuffled_surface_blind --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_0_5b_shuffled_surface_blind && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b_combined_blind_shuffle --eval-seeds 1000-1019 --prompt-variant combined_blind_shuffle --output-dir outputs/model_eval/sft_0_5b_combined_blind_shuffle && python training/train_json_grpo.py --confirm-real-training --model outputs/sft_qwen25_05b_json/model --max-steps 10 --train-seeds 0-2 --eval-seeds 1000 --eval-prompt-variant combined_blind_shuffle --output-dir outputs/grpo_tiny_hf --num-generations 2 --per-device-train-batch-size 2 --gradient-accumulation-steps 1 --learning-rate 5e-6 --max-completion-length 160 --format-reward-weight 0.2 --save-steps 10 && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b --eval-seeds 1000-1019 --output-dir outputs/model_eval/sft_grpo_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_shuffled_surface_blind --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_grpo_0_5b_shuffled_surface_blind && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_combined_blind_shuffle --eval-seeds 1000-1019 --prompt-variant combined_blind_shuffle --output-dir outputs/model_eval/sft_grpo_0_5b_combined_blind_shuffle && python scripts/plot_model_eval.py --summary base=outputs/model_eval/base_0_5b_standard/summary.json --summary sft=outputs/model_eval/sft_0_5b_standard/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_standard/summary.json --output-dir outputs/model_eval && python scripts/plot_model_eval.py --summary sft=outputs/model_eval/sft_0_5b_combined_blind_shuffle/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_combined_blind_shuffle/summary.json --output-dir outputs/model_eval/combined_blind_shuffle && echo '=== BASE SUMMARY ===' && cat outputs/model_eval/base_0_5b_standard/summary.json && echo '=== SFT STANDARD SUMMARY ===' && cat outputs/model_eval/sft_0_5b_standard/summary.json && echo '=== SFT SHUFFLED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_0_5b_shuffled_surface_blind/summary.json && echo '=== SFT COMBINED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_0_5b_combined_blind_shuffle/summary.json && echo '=== SFT+GRPO STANDARD SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_standard/summary.json && echo '=== SFT+GRPO SHUFFLED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_shuffled_surface_blind/summary.json && echo '=== SFT+GRPO COMBINED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_combined_blind_shuffle/summary.json"
 """
 
 
@@ -62,6 +70,34 @@ def check_target_not_in_prompt(record: dict[str, Any]) -> list[str]:
     return issues
 
 
+def answer_position_distribution(seeds: list[int], prompt_variant: str) -> dict[str, dict[str, Any]]:
+    distribution: dict[str, dict[str, Any]] = {}
+    for family in IMPLEMENTED_FAMILIES:
+        _, oracle = generate_incident(family=family, seed=42)
+        field_positions = {
+            "root_cause": [],
+            "require_first_clause": [],
+            "forbid": [],
+            "preserve": [],
+        }
+        for seed in seeds:
+            candidates = ordered_candidates_for_prompt(family, seed, prompt_variant=prompt_variant)
+            field_positions["root_cause"].append(candidates["root_cause"].index(oracle.true_root_cause))
+            field_positions["require_first_clause"].append(candidates["require"].index(oracle.answer_key_clause_ids[0]))
+            field_positions["forbid"].append(candidates["forbid"].index(oracle.expected_forbid_effects[0]))
+            field_positions["preserve"].append(candidates["preserve"].index(oracle.expected_preserve_clauses[0]))
+        distribution[family] = {}
+        for field, positions in field_positions.items():
+            counts = Counter(positions)
+            distribution[family][field] = {
+                "positions_seen": sorted(counts),
+                "counts": {str(position): count for position, count in sorted(counts.items())},
+                "always_first": set(positions) == {0},
+                "single_position": len(set(positions)) == 1,
+            }
+    return distribution
+
+
 def run_leakage_audit() -> dict[str, Any]:
     sft_train = set(parse_seed_spec(SFT_TRAIN_SEEDS))
     grpo_train = set(parse_seed_spec(GRPO_TRAIN_SEEDS))
@@ -80,32 +116,16 @@ def run_leakage_audit() -> dict[str, Any]:
     eval_records = build_records("eval", sorted(eval_seeds), prompt_variant="standard")
     train_ids = {record["id"] for record in train_records}
     eval_ids = {record["id"] for record in eval_records}
-    candidate_position_audit: dict[str, dict[str, Any]] = {}
-    for family in IMPLEMENTED_FAMILIES:
-        _, oracle = generate_incident(family=family, seed=42)
-        root_positions: list[int] = []
-        require_positions: list[int] = []
-        forbid_positions: list[int] = []
-        preserve_positions: list[int] = []
-        for seed in sorted(eval_seeds):
-            candidates = ordered_candidates_for_prompt(family, seed, prompt_variant=CHALLENGE_VARIANT)
-            root_positions.append(candidates["root_cause"].index(oracle.true_root_cause))
-            require_positions.append(candidates["require"].index(oracle.answer_key_clause_ids[0]))
-            forbid_positions.append(candidates["forbid"].index(oracle.expected_forbid_effects[0]))
-            preserve_positions.append(candidates["preserve"].index(oracle.expected_preserve_clauses[0]))
-        candidate_position_audit[family] = {
-            "root_cause_positions": sorted(set(root_positions)),
-            "require_positions": sorted(set(require_positions)),
-            "forbid_positions": sorted(set(forbid_positions)),
-            "preserve_positions": sorted(set(preserve_positions)),
-            "all_answers_first": (
-                set(root_positions) == {0}
-                or set(require_positions) == {0}
-                or set(forbid_positions) == {0}
-                or set(preserve_positions) == {0}
-            ),
-        }
-    candidate_position_issue = any(item["all_answers_first"] for item in candidate_position_audit.values())
+    candidate_position_audit = {
+        name: answer_position_distribution(parse_seed_spec(seed_spec), variant)
+        for name, (seed_spec, variant) in AUDIT_POSITION_SLICES.items()
+    }
+    candidate_position_issue = any(
+        field_payload["always_first"] or field_payload["single_position"]
+        for slice_payload in candidate_position_audit.values()
+        for family_payload in slice_payload.values()
+        for field_payload in family_payload.values()
+    )
 
     family_label_note = (
         "Standard prompts expose the failure family because the OpenEnv state exposes family. "
@@ -124,6 +144,7 @@ def run_leakage_audit() -> dict[str, Any]:
         "records_checked_across_variants": checked_records,
         "prompt_target_leakage_issues": issues,
         "candidate_position_audit": candidate_position_audit,
+        "candidate_position_issue": candidate_position_issue,
         "hidden_answer_leakage": "passed" if not issues else "failed",
         "family_label_note": family_label_note,
         "local_checkpoint_status": {
@@ -135,7 +156,7 @@ def run_leakage_audit() -> dict[str, Any]:
     }
 
 
-def run_oracle_sanity() -> tuple[dict[str, Any], dict[str, Any]]:
+def run_oracle_sanity() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     standard_rows = [
         {
             "id": record["id"],
@@ -155,6 +176,16 @@ def run_oracle_sanity() -> tuple[dict[str, Any], dict[str, Any]]:
             "prompt": record["prompt"],
         }
         for record in build_records("eval", parse_seed_spec("1000-1019"), prompt_variant=CHALLENGE_VARIANT)
+    ]
+    hard_challenge_rows = [
+        {
+            "id": record["id"],
+            "family": record["family"],
+            "seed": int(record["seed"]),
+            "prompt_variant": record["prompt_variant"],
+            "prompt": record["prompt"],
+        }
+        for record in build_records("eval", parse_seed_spec("1000-1019"), prompt_variant=HARD_CHALLENGE_VARIANT)
     ]
 
     class Args:
@@ -176,10 +207,30 @@ def run_oracle_sanity() -> tuple[dict[str, Any], dict[str, Any]]:
 
     challenge_completions, challenge_metrics = run_mock_eval(challenge_rows, "oracle")
     challenge_summary = write_outputs(OUTPUT_DIR / "oracle_challenge_eval", challenge_completions, challenge_metrics, ChallengeArgs())
-    return standard_summary, challenge_summary
+
+    class HardChallengeArgs:
+        model = "oracle_correct_solver_for_sanity"
+        model_label = "oracle_correct_solver_for_sanity"
+        eval_seeds = "1000-1019"
+        prompt_variant = HARD_CHALLENGE_VARIANT
+        mock_policy = "oracle"
+
+    hard_challenge_completions, hard_challenge_metrics = run_mock_eval(hard_challenge_rows, "oracle")
+    hard_challenge_summary = write_outputs(
+        OUTPUT_DIR / "oracle_combined_blind_shuffle_eval",
+        hard_challenge_completions,
+        hard_challenge_metrics,
+        HardChallengeArgs(),
+    )
+    return standard_summary, challenge_summary, hard_challenge_summary
 
 
-def write_audit_md(leakage: dict[str, Any], standard_summary: dict[str, Any], challenge_summary: dict[str, Any]) -> None:
+def write_audit_md(
+    leakage: dict[str, Any],
+    standard_summary: dict[str, Any],
+    challenge_summary: dict[str, Any],
+    hard_challenge_summary: dict[str, Any],
+) -> None:
     content = f"""# Generalization And Claim Audit
 
 This file is intentionally conservative. It separates real completed 0.5B evidence from pending larger held-out model evaluation so the submission does not overclaim.
@@ -192,10 +243,10 @@ Result: **{leakage['status']}**
 - Records checked across standard and challenge variants: `{leakage['records_checked_across_variants']}`
 - Target JSON appears verbatim in eval prompts: `{bool(leakage['prompt_target_leakage_issues'])}`
 - Incident IDs usable for hardcoding in prompts: `False`
-- Candidate answer positions vary across challenge eval seeds: `{not any(item['all_answers_first'] for item in leakage['candidate_position_audit'].values())}`
+- Candidate answer positions vary across train/eval/challenge slices: `{not leakage['candidate_position_issue']}`
 - Family-specific labels: public metadata in standard OpenEnv prompts; blind-family challenge prompts are available to test dependence on that metadata.
 
-Candidate position audit:
+Candidate answer-position distribution:
 
 ```json
 {json.dumps(leakage['candidate_position_audit'], indent=2, sort_keys=True)}
@@ -230,14 +281,20 @@ This oracle sanity check proves the verifier can score correct repair plans acro
 
 ## 4. Challenge Eval Metrics
 
-Challenge variant implemented: `{CHALLENGE_VARIANT}`
+Challenge variants implemented: `{CHALLENGE_VARIANT}`, `{HARD_CHALLENGE_VARIANT}`
 
-The variant shuffles trace spans, rewrites surface wording, and blinds the family label as `agent_reliability_failure`. Real model challenge evaluation is pending.
+`{CHALLENGE_VARIANT}` shuffles trace spans, rewrites surface wording, and blinds the family label as `agent_reliability_failure`. `{HARD_CHALLENGE_VARIANT}` also changes service/requester/capability names while preserving the same root-cause semantics. Real model challenge evaluation is pending.
 
 Oracle sanity on challenge seeds `1000-1019`:
 
 ```json
 {json.dumps(challenge_summary, indent=2, sort_keys=True)}
+```
+
+Oracle sanity on `{HARD_CHALLENGE_VARIANT}` seeds `1000-1019`:
+
+```json
+{json.dumps(hard_challenge_summary, indent=2, sort_keys=True)}
 ```
 
 ## 5. Plots Created
@@ -301,9 +358,9 @@ Unsafe claims:
 def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     leakage = run_leakage_audit()
-    standard_summary, challenge_summary = run_oracle_sanity()
+    standard_summary, challenge_summary, hard_challenge_summary = run_oracle_sanity()
     (OUTPUT_DIR / "leakage_audit.json").write_text(json.dumps(leakage, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    write_audit_md(leakage, standard_summary, challenge_summary)
+    write_audit_md(leakage, standard_summary, challenge_summary, hard_challenge_summary)
     print(f"generalization_audit: leakage_status={leakage['status']}")
     print(f"generalization_audit: wrote {OUTPUT_DIR / 'leakage_audit.json'}")
     print(f"generalization_audit: wrote {AUDIT_MD}")

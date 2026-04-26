@@ -219,7 +219,7 @@ A certificate is generated only after visible replay and hidden regressions pass
 
 It is not a global safety proof.
 
-Certificate gating additionally requires exact evidence-span correctness and correct root cause. A patch that blocks hidden variants but cites the wrong evidence cannot produce a certificate.
+Certificate gating additionally requires replay completion, exact evidence-span correctness, correct root cause, correct patch blocking, valid preservation, no overblocking, and no hardcoded incident references. A patch that blocks hidden variants but cites the wrong evidence cannot produce a certificate.
 
 ## Family Specs
 
@@ -250,7 +250,10 @@ For final training evidence, use a larger held-out range before scaling models:
 - minimum larger eval seeds if budget is tight: `1000-1019`
 - challenge prompt variant: `shuffled_surface_blind`
 
-Challenge prompts preserve the same public failure semantics but shuffle trace order, rewrite surface wording, and replace the public family label with `agent_reliability_failure`.
+Challenge prompts preserve the same public failure semantics while changing superficial cues:
+
+- `shuffled_surface_blind`: shuffles trace order, rewrites surface wording, and replaces the public family label with `agent_reliability_failure`.
+- `combined_blind_shuffle`: includes the shuffled/blind/reworded challenge and also renames service, requester, and capability/tool surface entities while preserving the same root-cause semantics.
 
 ## Evaluation Metrics
 

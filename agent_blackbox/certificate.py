@@ -16,11 +16,16 @@ def can_generate_certificate(episode: EpisodeRuntime) -> bool:
     visible = episode.visible_replay_report or {}
     hidden = episode.hidden_regression_summary or {}
     return (
+        episode.incident_replayed is True
+        and
         visible.get("passed") is True
         and hidden.get("passed") is True
         and episode.submitted_patch is not None
         and episode.submitted_root_cause == episode.hidden_oracle.true_root_cause
         and exact_span_match(episode.selected_evidence_spans, episode.hidden_oracle.expected_evidence_spans)
+        and hidden.get("valid_behavior_preservation_rate") == 1.0
+        and hidden.get("overblocking_detected") is False
+        and hidden.get("hardcoded_patch_detected") is False
     )
 
 

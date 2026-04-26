@@ -139,6 +139,8 @@ After the first HF T4 attempt, the training path was hardened for Qwen Instruct 
 
 The format shaping reward exists only to escape the all-invalid-JSON cold start. It is not an environment score and must not be reported as benchmark improvement.
 
+After SFT warmstart, GRPO should be used only when there is still a harder-surface learning signal: for example standard plus `combined_blind_shuffle` challenge prompts where SFT is not already saturated. GRPO success requires nonzero reward variance or a clear improvement on challenge/generalization metrics. If `reward_std` is zero and `frac_reward_zero_std` is one, report the run as verifier-scored validation, not RL improvement.
+
 ## Training Quality Gate
 
 Official TRL guidance confirms that GRPO uses groups of generated completions per prompt, custom reward functions can score those completions, and metrics such as `reward_std` and `frac_reward_zero_std` reveal whether the group has useful reward variation. The project now makes those assumptions explicit before any paid-capable run.
@@ -186,7 +188,7 @@ Because the 0.5B SFT+GRPO validation is perfect on a small eval, Run 2 is blocke
 After the hardening pass, the next 0.5B audit should be treated as the new evidence baseline because:
 
 - candidate root-cause and patch-label options are seed-shuffled
-- challenge prompts blind the family label, shuffle spans, and rewrite surface text
+- challenge prompts blind the family label, shuffle spans, rewrite surface text, and include the harder `combined_blind_shuffle` entity-renaming variant
 - certificate success requires correct evidence, not only a patch that passes hidden regressions
 - summaries include `evidence_correct_rate`, `root_cause_correct_rate`, `patch_blocks_rate`, and `certificate_gate_fail_rate`
 
@@ -222,6 +224,12 @@ Challenge eval uses the same script with:
 
 ```bash
 --prompt-variant shuffled_surface_blind
+```
+
+Harder combined challenge:
+
+```bash
+--prompt-variant combined_blind_shuffle
 ```
 
 Plot only after the real model-eval summaries exist:

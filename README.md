@@ -110,7 +110,7 @@ The reward is deterministic and verifier-based. It measures:
 - hidden regressions pass
 - certificate is generated
 
-The verifier penalizes invalid JSON, unknown clauses, wrong root causes, patches without evidence, block-everything behavior, overblocking valid flows, hardcoded incident IDs, hidden-test probing, premature certificates, timeouts, and repeated hidden-regression calls. Certificate generation now requires correct evidence spans as well as correct root cause, visible replay, hidden regressions, and valid preservation.
+The verifier penalizes invalid JSON, unknown clauses, wrong root causes, patches without evidence, block-everything behavior, overblocking valid flows, hardcoded incident IDs, hidden-test probing, premature certificates, timeouts, and repeated hidden-regression calls. Certificate generation now requires replay completion, correct evidence spans, correct root cause, visible replay, hidden regressions, valid preservation, no overblocking, and no hardcoded incident references.
 
 ## Why Hidden Regressions Matter
 
@@ -132,6 +132,7 @@ Perfect scores on a tiny eval are not enough. Before scaling to 1.5B or making f
 - challenge prompts with shuffled trace spans, rewritten surface wording, and blinded family labels
 - deterministic candidate-order shuffling so answer position is not a learnable label
 - stricter certificate gating on evidence correctness
+- `combined_blind_shuffle` challenge prompts that also rename service/requester/capability surface entities
 - base vs SFT vs SFT+GRPO comparison
 - plots generated only from real model-evaluation summaries
 

@@ -24,6 +24,7 @@ CHALLENGE_VARIANTS = [
     "blind_family",
     "surface_reworded_blind_family",
     "shuffled_surface_blind",
+    "combined_blind_shuffle",
 ]
 
 LABEL_GLOSSARY = {
@@ -168,6 +169,42 @@ def surface_rewrite(text: str) -> str:
     return rewritten
 
 
+def entity_rewrite(text: str, *, family: str, seed: int) -> str:
+    """Rename surface entities while preserving the underlying repair semantics."""
+    service_names = ["AtlasDesk", "NimbusOps", "LedgerFlow", "HelioCRM", "VectorCare"]
+    requester_names = ["Mira", "Devon", "Ishan", "Rowan", "Tala"]
+    capability_names = ["policy_check", "workspace_update", "scope_admin", "approval_commit", "read_snapshot"]
+    digest = hashlib.sha256(f"{family}:{seed}:entity_rewrite".encode("utf-8")).digest()
+    service = service_names[digest[0] % len(service_names)]
+    requester = requester_names[digest[1] % len(requester_names)]
+    capability = capability_names[digest[2] % len(capability_names)]
+    replacements = [
+        ("User", requester),
+        ("user", "requester"),
+        ("Agent", "Automation worker"),
+        ("agent", "automation worker"),
+        ("policy document", f"{service} rules artifact"),
+        ("policy snapshot", f"{service} rules snapshot"),
+        ("policy", f"{service} rule set"),
+        ("rules package", f"{service} rules package"),
+        ("account", f"{service} workspace"),
+        ("workspace", f"{service} workspace"),
+        ("message", f"{service} approval note"),
+        ("handoff note", f"{service} approval note"),
+        ("tool", "capability"),
+        ("capability", f"{service} capability"),
+        ("administrative", "privileged"),
+        ("action", "operation"),
+        ("requested", "asked for"),
+        ("selected", "chose"),
+        ("called", f"invoked {capability} through"),
+    ]
+    rewritten = text
+    for old, new in replacements:
+        rewritten = rewritten.replace(old, new)
+    return rewritten
+
+
 def normalize_prompt_variant(prompt_variant: str) -> str:
     if prompt_variant not in CHALLENGE_VARIANTS:
         raise ValueError(f"unknown prompt variant: {prompt_variant}; expected one of {', '.join(CHALLENGE_VARIANTS)}")
@@ -178,11 +215,13 @@ def variant_has(prompt_variant: str, feature: str) -> bool:
     if prompt_variant == "standard":
         return False
     if feature == "shuffle":
-        return prompt_variant in {"shuffled_spans", "shuffled_surface_blind"}
+        return prompt_variant in {"shuffled_spans", "shuffled_surface_blind", "combined_blind_shuffle"}
     if feature == "rewrite":
-        return prompt_variant in {"surface_reworded", "surface_reworded_blind_family", "shuffled_surface_blind"}
+        return prompt_variant in {"surface_reworded", "surface_reworded_blind_family", "shuffled_surface_blind", "combined_blind_shuffle"}
     if feature == "blind_family":
-        return prompt_variant in {"blind_family", "surface_reworded_blind_family", "shuffled_surface_blind"}
+        return prompt_variant in {"blind_family", "surface_reworded_blind_family", "shuffled_surface_blind", "combined_blind_shuffle"}
+    if feature == "rename_entities":
+        return prompt_variant == "combined_blind_shuffle"
     return False
 
 
@@ -215,8 +254,13 @@ def prompt_text_for_incident(family: str, seed: int, prompt_variant: str = "stan
     for span in public_spans:
         span_type = surface_rewrite(span["span_type"]) if variant_has(prompt_variant, "rewrite") else span["span_type"]
         summary = surface_rewrite(span["summary"]) if variant_has(prompt_variant, "rewrite") else span["summary"]
+        if variant_has(prompt_variant, "rename_entities"):
+            span_type = entity_rewrite(span_type, family=incident.family, seed=seed)
+            summary = entity_rewrite(summary, family=incident.family, seed=seed)
         trace_lines.append(f"- {span['span_id']} {span_type}: {summary}")
     scenario = surface_rewrite(incident.scenario) if variant_has(prompt_variant, "rewrite") else incident.scenario
+    if variant_has(prompt_variant, "rename_entities"):
+        scenario = entity_rewrite(scenario, family=incident.family, seed=seed)
     family_line = "agent_reliability_failure" if variant_has(prompt_variant, "blind_family") else incident.family
     return f"""{strict_json_instruction()}
 
