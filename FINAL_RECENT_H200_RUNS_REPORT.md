@@ -4,7 +4,7 @@ This report summarizes the five most relevant recent larger-model H200 runs afte
 
 ## Final Selected Model Decision
 
-Cursor's final selected model is **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200** from job `69edcef7d70108f37acdfeb3`.
+Final selected model for submission: **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200** from job `69edcef7d70108f37acdfeb3`.
 
 Reason: it is the strongest real result, with standard `1.0000`, shuffled challenge `0.9557`, combined challenge `0.9367`, `invalid_json_rate=0.0`, `overblocking_rate=0.0`, and `hardcoded_patch_rate=0.0`. It beats the previous 0.5B fallback on challenge evidence and certificate rates by a large margin. The older 0.5B result remains a safe fallback only if final docs/packaging are not updated to claim the Qwen3-4B evidence.
 

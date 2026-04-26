@@ -6,6 +6,8 @@ pinned: false
 license: mit
 ---
 
+The YAML block above is Hugging Face Space configuration; GitHub renders it as plain README frontmatter.
+
 # Agent BlackBox Arena
 
 **Replay. Repair. Regress. Certify.**

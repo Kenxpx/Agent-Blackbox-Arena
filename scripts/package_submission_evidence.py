@@ -13,7 +13,7 @@ PACKAGE_DIR = ROOT / "submission_evidence"
 ZIP_PATH = ROOT / "submission_evidence.zip"
 MAX_FILE_BYTES = 25 * 1024 * 1024
 
-EXACT_FILES = [
+REQUIRED_EXACT_FILES = [
     "README.md",
     "BLOG.md",
     "BENCHMARK_SPEC.md",
@@ -31,6 +31,9 @@ EXACT_FILES = [
     "pyproject.toml",
     "requirements.txt",
     "logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt",
+]
+
+OPTIONAL_EXACT_FILES = [
     "outputs/results.csv",
     "outputs/baseline_summary.json",
     "outputs/baseline_scores.png",
@@ -49,7 +52,21 @@ EXACT_FILES = [
     "outputs/sft_qwen25_05b_json/sft_quality_report.json",
 ]
 
-GLOB_PATTERNS = [
+REQUIRED_GLOB_PATTERNS = [
+    "docs/final_assets/**/*.json",
+    "docs/final_assets/**/*.csv",
+    "docs/final_assets/**/*.md",
+    "docs/final_assets/**/*.png",
+    "agent_blackbox/*.py",
+    "server/*.py",
+    "training/*.py",
+    "scripts/*.py",
+    "scripts/*.sh",
+    "tests/*.py",
+    "notebooks/*.ipynb",
+]
+
+OPTIONAL_GLOB_PATTERNS = [
     "outputs/model_eval/**/summary.json",
     "outputs/model_eval/**/*.csv",
     "outputs/model_eval/**/*.json",
@@ -59,21 +76,10 @@ GLOB_PATTERNS = [
     "outputs/tracking/**/*.json",
     "outputs/tracking/**/events.out.tfevents*",
     "outputs/final_plots/**/*.png",
-    "docs/final_assets/**/*.json",
-    "docs/final_assets/**/*.csv",
-    "docs/final_assets/**/*.md",
-    "docs/final_assets/**/*.png",
     "outputs/larger_models/qwen3_4b_2507_final_h200/plots/**/*.png",
     "outputs/larger_models/qwen3_4b_2507_final_h200/tracking/**/*.csv",
     "outputs/larger_models/qwen3_4b_2507_final_h200/tracking/**/*.json",
     "outputs/larger_models/qwen3_4b_2507_final_h200/tracking/**/events.out.tfevents*",
-    "agent_blackbox/*.py",
-    "server/*.py",
-    "training/*.py",
-    "scripts/*.py",
-    "scripts/*.sh",
-    "tests/*.py",
-    "notebooks/*.ipynb",
     "notebooks/*.md",
 ]
 
@@ -131,26 +137,42 @@ def should_skip(path: Path) -> tuple[bool, str]:
     return False, ""
 
 
-def collect_candidates() -> tuple[dict[Path, str], list[dict[str, str]]]:
+def collect_candidates() -> tuple[dict[Path, str], list[dict[str, str]], list[dict[str, str]]]:
     candidates: dict[Path, str] = {}
-    missing: list[dict[str, str]] = []
+    missing_required: list[dict[str, str]] = []
+    missing_optional: list[dict[str, str]] = []
 
-    for item in EXACT_FILES:
+    for item in REQUIRED_EXACT_FILES:
         path = ROOT / item
         if path.exists() and path.is_file():
-            candidates[path.resolve()] = "exact"
+            candidates[path.resolve()] = "required_exact"
         else:
-            missing.append({"path": item, "reason": "not present"})
+            missing_required.append({"path": item, "reason": "not present"})
 
-    for pattern in GLOB_PATTERNS:
+    for item in OPTIONAL_EXACT_FILES:
+        path = ROOT / item
+        if path.exists() and path.is_file():
+            candidates[path.resolve()] = "optional_exact"
+        else:
+            missing_optional.append({"path": item, "reason": "optional historical artifact not present"})
+
+    for pattern in REQUIRED_GLOB_PATTERNS:
         matches = sorted(path for path in ROOT.glob(pattern) if path.is_file())
         if not matches:
-            missing.append({"path": pattern, "reason": "no matches"})
+            missing_required.append({"path": pattern, "reason": "no matches"})
             continue
         for path in matches:
-            candidates[path.resolve()] = f"glob:{pattern}"
+            candidates[path.resolve()] = f"required_glob:{pattern}"
 
-    return candidates, missing
+    for pattern in OPTIONAL_GLOB_PATTERNS:
+        matches = sorted(path for path in ROOT.glob(pattern) if path.is_file())
+        if not matches:
+            missing_optional.append({"path": pattern, "reason": "optional historical artifact not present"})
+            continue
+        for path in matches:
+            candidates[path.resolve()] = f"optional_glob:{pattern}"
+
+    return candidates, missing_required, missing_optional
 
 
 def prepare_output_dir() -> None:
@@ -161,7 +183,35 @@ def prepare_output_dir() -> None:
         ZIP_PATH.unlink()
 
 
-def copy_files(candidates: dict[Path, str], missing: list[dict[str, str]]) -> dict[str, Any]:
+def write_manifest_note(
+    included: list[dict[str, Any]],
+    missing_required: list[dict[str, str]],
+    missing_optional: list[dict[str, str]],
+    skipped: list[dict[str, str]],
+) -> None:
+    note = f"""# Submission Evidence Manifest
+
+Canonical final evidence is stored in:
+
+- `docs/final_assets/` for final Qwen3-4B metrics, tables, and plots
+- `logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt` for the final H200 log
+- `SUBMISSION_EVIDENCE.md`, `FINAL_SUBMISSION_AUDIT.md`, and `FINAL_FORM_SUBMISSION_CHECKLIST.md` for claim boundaries and form links
+
+`missing_required_count` must be `0` for a complete package. `optional_missing_count` can be nonzero because historical or remote H200 output folders are not required when their canonical final metrics/log evidence is present in `docs/final_assets/` and `logs/final/`.
+
+- Included files: {len(included)}
+- Missing required files: {len(missing_required)}
+- Missing optional historical artifacts: {len(missing_optional)}
+- Skipped unsafe/large files: {len(skipped)}
+"""
+    (PACKAGE_DIR / "MANIFEST.md").write_text(note, encoding="utf-8")
+
+
+def copy_files(
+    candidates: dict[Path, str],
+    missing_required: list[dict[str, str]],
+    missing_optional: list[dict[str, str]],
+) -> dict[str, Any]:
     included: list[dict[str, Any]] = []
     skipped: list[dict[str, str]] = []
 
@@ -184,14 +234,16 @@ def copy_files(candidates: dict[Path, str], missing: list[dict[str, str]]) -> di
 
     manifest = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "root": str(ROOT),
-        "package_dir": str(PACKAGE_DIR),
-        "zip_path": str(ZIP_PATH),
+        "root": ".",
+        "package_dir": PACKAGE_DIR.name,
+        "zip_path": ZIP_PATH.name,
         "included_count": len(included),
-        "missing_count": len(missing),
+        "missing_required_count": len(missing_required),
+        "optional_missing_count": len(missing_optional),
         "skipped_count": len(skipped),
         "included": included,
-        "missing": missing,
+        "missing_required": missing_required,
+        "optional_missing": missing_optional,
         "skipped": skipped,
         "safety": {
             "secrets_excluded": True,
@@ -200,6 +252,7 @@ def copy_files(candidates: dict[Path, str], missing: list[dict[str, str]]) -> di
             "max_file_bytes": MAX_FILE_BYTES,
         },
     }
+    write_manifest_note(included, missing_required, missing_optional, skipped)
     manifest_path = PACKAGE_DIR / "MANIFEST.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return manifest
@@ -213,17 +266,20 @@ def write_zip() -> None:
 
 
 def main() -> int:
-    candidates, missing = collect_candidates()
+    candidates, missing_required, missing_optional = collect_candidates()
     prepare_output_dir()
-    manifest = copy_files(candidates, missing)
+    manifest = copy_files(candidates, missing_required, missing_optional)
     write_zip()
     print(f"package_submission_evidence: wrote {PACKAGE_DIR}")
     print(f"package_submission_evidence: wrote {ZIP_PATH}")
     print(
         "package_submission_evidence: "
-        f"included={manifest['included_count']} missing={manifest['missing_count']} skipped={manifest['skipped_count']}"
+        f"included={manifest['included_count']} "
+        f"missing_required={manifest['missing_required_count']} "
+        f"optional_missing={manifest['optional_missing_count']} "
+        f"skipped={manifest['skipped_count']}"
     )
-    return 0
+    return 1 if manifest["missing_required_count"] else 0
 
 
 if __name__ == "__main__":
