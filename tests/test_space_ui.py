@@ -17,7 +17,33 @@ def test_root_returns_polished_html():
     assert "Agent BlackBox Arena" in response.text
     assert "Replay. Repair. Regress. Certify." in response.text
     assert "OpenEnv-style environment" in response.text
+    assert "Live Repair Episode" in response.text
+    assert "Mini benchmark scoreboard" in response.text
     assert "POST_CHALLENGE_CURRICULUM_0_5B_COMPLETE" not in response.text
+
+
+def test_space_resource_links_are_stable_public_urls():
+    response = client.get("/")
+    html = response.text
+    repo = "https://github.com/Kenxpx/Agent-Blackbox-Arena"
+    expected_links = [
+        repo,
+        f"{repo}#readme",
+        f"{repo}/blob/main/BENCHMARK_SPEC.md",
+        f"{repo}/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb",
+        f"{repo}/blob/main/SUBMISSION_EVIDENCE.md",
+        f"{repo}/blob/main/FINAL_SUBMISSION_AUDIT.md",
+        f"{repo}/blob/main/TRAINING_RUN_LOG.md",
+        f"{repo}/blob/main/openenv.yaml",
+        f"{repo}/tree/main/training",
+        "/metadata",
+    ]
+    for link in expected_links:
+        assert f'href="{link}"' in html
+    assert 'href="#"' not in html
+    assert f'href="{repo}#agent-blackbox-arena"' not in html
+    assert "Video / Blog" in html
+    assert "link pending before final submission" in html
 
 
 def test_metadata_endpoint_keeps_json_metadata():

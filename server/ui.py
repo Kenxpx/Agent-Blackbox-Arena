@@ -443,6 +443,12 @@ _HTML = """<!doctype html>
       font-size: 0.97rem;
       color: #f8fafc;
     }
+    .score-delta {
+      color: var(--green);
+      font-size: 0.78rem;
+      margin-left: 4px;
+      font-weight: 900;
+    }
 
     .tabbar {
       display: flex;
@@ -608,6 +614,27 @@ _HTML = """<!doctype html>
       display: grid;
       gap: 22px;
     }
+    .variant-chips {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .variant-chip {
+      border: 1px solid rgba(148, 163, 184, 0.17);
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(2, 6, 23, 0.36);
+    }
+    .variant-chip strong {
+      display: block;
+      color: #f8fafc;
+      margin-bottom: 5px;
+    }
+    .variant-chip span {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
     .science-plot {
       margin: 0;
       border: 1px solid var(--line);
@@ -692,6 +719,44 @@ _HTML = """<!doctype html>
       border-color: rgba(34, 211, 238, 0.45);
       background: rgba(34, 211, 238, 0.06);
     }
+    .resource-card.disabled {
+      cursor: default;
+      color: var(--muted);
+      border-style: dashed;
+      opacity: 0.82;
+    }
+    .resource-card.disabled:hover {
+      border-color: var(--line);
+      background: rgba(15, 23, 42, 0.58);
+    }
+    .scoreboards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .mini-board {
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 8px;
+      padding: 11px;
+      background: rgba(2, 6, 23, 0.38);
+    }
+    .mini-board h4 {
+      margin: 0 0 8px;
+      color: #f8fafc;
+    }
+    .mini-board div {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      padding: 4px 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.09);
+    }
+    .mini-board b.pass { color: var(--green); }
+    .mini-board b.partial { color: var(--amber); }
+    .mini-board b.fail { color: var(--red); }
 
     .disclaimer {
       border: 1px solid rgba(251, 191, 36, 0.26);
@@ -711,7 +776,7 @@ _HTML = """<!doctype html>
     @media (max-width: 1000px) {
       .hero-grid, .console-grid, .benchmark-band, .trust-grid { grid-template-columns: 1fr; }
       .console-side { border-right: 0; border-bottom: 1px solid var(--line); }
-      .proof-grid, .results-grid, .takeaways, .resource-grid { grid-template-columns: repeat(2, 1fr); }
+      .proof-grid, .results-grid, .takeaways, .resource-grid, .variant-chips, .scoreboards { grid-template-columns: repeat(2, 1fr); }
       .family-grid, .test-grid { grid-template-columns: 1fr; }
       .loop { grid-template-columns: repeat(2, 1fr); }
       .plot-copy { grid-template-columns: 1fr; }
@@ -722,7 +787,7 @@ _HTML = """<!doctype html>
       .nav { align-items: flex-start; flex-direction: column; padding: 10px 0; }
       .nav-links { justify-content: flex-start; }
       .hero { padding-top: 48px; }
-      .proof-grid, .results-grid, .takeaways, .resource-grid, .loop, .signal-grid { grid-template-columns: 1fr; }
+      .proof-grid, .results-grid, .takeaways, .resource-grid, .loop, .signal-grid, .variant-chips, .scoreboards { grid-template-columns: 1fr; }
       .button { width: 100%; }
       .section-head { display: block; }
       .section-head p { margin-top: 10px; }
@@ -767,7 +832,7 @@ _HTML = """<!doctype html>
           </div>
           <div class="button-row" style="margin-top:10px">
             <button class="button subtle" type="button" onclick="showCertificate()">View Certificate</button>
-            <a class="button subtle" href="$GITHUB_ROOT">Open GitHub</a>
+            <a class="button subtle" href="$GITHUB_ROOT" target="_blank" rel="noopener noreferrer">Open GitHub</a>
           </div>
         </div>
         <aside class="artifact-card" aria-label="Bounded certificate preview">
@@ -806,14 +871,14 @@ _HTML = """<!doctype html>
         <div class="section-head compact">
           <div>
             <div class="eyebrow">Test it now</div>
-            <h2>Live Benchmark Console</h2>
+            <h2>Live Repair Episode</h2>
           </div>
-          <p>These controls call the running FastAPI environment. Watch the episode state change as replay, evidence, patching, hidden regressions, and certificate gating execute.</p>
+          <p>Click through a verifier-scored OpenEnv-style episode. The controls call the running FastAPI environment and expose how score, evidence, regressions, and certificate gates change.</p>
         </div>
         <div class="console">
           <div class="console-top">
             <div>
-              <h3>stale_retrieval vertical demo</h3>
+              <h3>Live environment demo</h3>
               <p>Correct repair path versus block-everything failure, using live `/reset`, `/step`, and `/state`.</p>
             </div>
             <a class="button subtle" href="/metadata">Test API manually</a>
@@ -823,15 +888,36 @@ _HTML = """<!doctype html>
               <div class="demo-controls">
                 <button class="button primary" type="button" onclick="resetIncident()">Reset demo incident</button>
                 <button class="button" type="button" onclick="runCorrectPath()">Step through correct repair path</button>
-                <button class="button" type="button" onclick="runBlockEverything()">Show block-everything failure</button>
-                <button class="button subtle" type="button" onclick="showCertificate()">Show repair certificate</button>
+                <button class="button" type="button" onclick="runBlockEverything()">Run block-everything baseline</button>
+                <button class="button subtle" type="button" onclick="showCertificate()">Generate certificate</button>
+                <button class="button subtle" type="button" onclick="clearConsole()">Clear console</button>
               </div>
               <div id="demo-status" class="status-line">Ready. Run the live demo to see evidence, patch, hidden regressions, and certificate gating.</div>
               <div class="signal-grid">
                 <div class="signal"><span>Family</span><strong id="demo-family">not started</strong></div>
-                <div class="signal"><span>Score</span><strong id="demo-score">0.000</strong></div>
+                <div class="signal"><span>Current step</span><strong id="demo-step">0</strong></div>
+                <div class="signal"><span>Score</span><strong><span id="demo-score">0.000</span><span id="demo-score-delta" class="score-delta"></span></strong></div>
                 <div class="signal"><span>Certificate</span><strong id="demo-cert">not generated</strong></div>
                 <div class="signal"><span>Hidden pass</span><strong id="demo-hidden">not run</strong></div>
+                <div class="signal"><span>Valid preservation</span><strong id="demo-preserve">not run</strong></div>
+                <div class="signal"><span>Overblocking</span><strong id="demo-overblocking">not run</strong></div>
+              </div>
+              <div class="scoreboards" aria-label="Mini benchmark scoreboard">
+                <div class="mini-board">
+                  <h4>Correct repair</h4>
+                  <div><span>evidence</span><b class="pass">pass</b></div>
+                  <div><span>root cause</span><b class="pass">pass</b></div>
+                  <div><span>hidden regression</span><b class="pass">pass</b></div>
+                  <div><span>valid preservation</span><b class="pass">pass</b></div>
+                  <div><span>certificate</span><b class="pass">pass</b></div>
+                </div>
+                <div class="mini-board">
+                  <h4>Block everything</h4>
+                  <div><span>failure blocked</span><b class="partial">partial</b></div>
+                  <div><span>valid preservation</span><b class="fail">fail</b></div>
+                  <div><span>overblocking</span><b class="fail">detected</b></div>
+                  <div><span>certificate</span><b class="fail">denied</b></div>
+                </div>
               </div>
             </aside>
             <div class="console-main">
@@ -839,11 +925,13 @@ _HTML = """<!doctype html>
                 <button class="tab active" type="button" onclick="showDemoTab('trace')">Trace</button>
                 <button class="tab" type="button" onclick="showDemoTab('evidence')">Evidence</button>
                 <button class="tab" type="button" onclick="showDemoTab('patch')">Patch</button>
+                <button class="tab" type="button" onclick="showDemoTab('regression')">Regression</button>
                 <button class="tab" type="button" onclick="showDemoTab('certificate')">Certificate</button>
               </div>
               <div id="panel-trace" class="panel active"><pre id="demo-trace">Trace spans will appear here after reset.</pre></div>
               <div id="panel-evidence" class="panel"><pre id="demo-evidence">Selected evidence and root cause will appear here.</pre></div>
               <div id="panel-patch" class="panel"><pre id="demo-patch">Repair patch and verifier reports will appear here.</pre></div>
+              <div id="panel-regression" class="panel"><pre id="demo-regression">Hidden regression and preservation results will appear here.</pre></div>
               <div id="panel-certificate" class="panel"><pre id="demo-certificate">Certificate outcome will appear here.</pre></div>
             </div>
           </div>
@@ -999,6 +1087,12 @@ _HTML = """<!doctype html>
           <p>The plots are generated from extracted HF Jobs evidence and verifier summaries, not placeholders.</p>
         </div>
         <div class="plot-stack">
+          <div class="variant-chips" aria-label="Variant metric chips">
+            <div class="variant-chip"><strong>Standard</strong><span>overall 0.9492 | cert 0.9333 | evidence 1.0000</span></div>
+            <div class="variant-chip"><strong>Shuffled challenge</strong><span>overall 0.6710 | cert 0.1833 | evidence 0.1833</span></div>
+            <div class="variant-chip"><strong>Combined challenge</strong><span>overall 0.6753 | cert 0.2167 | evidence 0.2167</span></div>
+          </div>
+          <p style="color: var(--muted); margin: -8px 0 0;">Challenge evidence improved from 0.0 to nonzero after curriculum hardening. Claims remain bounded.</p>
           $LOSS_PLOT
           $REWARD_PLOT
         </div>
@@ -1058,16 +1152,19 @@ _HTML = """<!doctype html>
           <p>Support material for a 3-minute audit. Kept compact so the environment and evidence stay central.</p>
         </div>
         <div class="resource-grid">
-          <a class="resource-card" href="$GITHUB_ROOT"><strong>GitHub Repository</strong><span>source and scripts</span></a>
-          <a class="resource-card" href="$GITHUB_ROOT#agent-blackbox-arena"><strong>README</strong><span>overview and run commands</span></a>
-          <a class="resource-card" href="$GITHUB_ROOT/blob/main/BENCHMARK_SPEC.md"><strong>Benchmark Spec</strong><span>environment contract</span></a>
-          <a class="resource-card" href="$GITHUB_ROOT/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb"><strong>Training Notebook</strong><span>rerun guide</span></a>
-          <a class="resource-card" href="$GITHUB_ROOT/blob/main/TRAINING_RUN_LOG.md"><strong>Training Run Log</strong><span>jobs and stop-loss</span></a>
-          <a class="resource-card" href="$GITHUB_ROOT/blob/main/SUBMISSION_EVIDENCE.md"><strong>Submission Evidence</strong><span>artifact manifest</span></a>
-          <a class="resource-card" href="$GITHUB_ROOT/blob/main/FINAL_SUBMISSION_AUDIT.md"><strong>Final Audit</strong><span>claims and limits</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT" target="_blank" rel="noopener noreferrer"><strong>GitHub Repository</strong><span>source and scripts</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT#readme" target="_blank" rel="noopener noreferrer"><strong>README</strong><span>overview and run commands</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/BENCHMARK_SPEC.md" target="_blank" rel="noopener noreferrer"><strong>Benchmark Spec</strong><span>environment contract</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb" target="_blank" rel="noopener noreferrer"><strong>Training Notebook</strong><span>rerun guide</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/TRAINING_RUN_LOG.md" target="_blank" rel="noopener noreferrer"><strong>Training Run Log</strong><span>jobs and stop-loss</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/SUBMISSION_EVIDENCE.md" target="_blank" rel="noopener noreferrer"><strong>Submission Evidence</strong><span>generated locally by package script</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/FINAL_SUBMISSION_AUDIT.md" target="_blank" rel="noopener noreferrer"><strong>Final Audit</strong><span>claims and limits</span></a>
           <a class="resource-card" href="/metadata"><strong>API Metadata</strong><span>machine-readable JSON</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/openenv.yaml" target="_blank" rel="noopener noreferrer"><strong>OpenEnv YAML</strong><span>runtime manifest</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/tree/main/training" target="_blank" rel="noopener noreferrer"><strong>Training Scripts</strong><span>SFT / GRPO scaffolds</span></a>
+          <div class="resource-card disabled" aria-disabled="true"><strong>Video / Blog</strong><span>link pending before final submission</span></div>
         </div>
-        <p style="color: var(--muted); margin: 14px 0 0;">Video/blog: coming before final submission. No placeholder link is claimed.</p>
+        <p style="color: var(--muted); margin: 14px 0 0;">Evidence package note: `submission_evidence.zip` is generated locally by <code>python scripts/package_submission_evidence.py</code>; this page links to the evidence manifest instead of a broken zip.</p>
       </div>
     </section>
 
@@ -1102,13 +1199,42 @@ _HTML = """<!doctype html>
       rationale: "Block every risky behavior."
     };
 
-    async function api(path, payload) {
-      const options = payload === undefined
-        ? {}
-        : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
+    let demoStepCount = 0;
+    let lastScore = 0;
+
+    async function fetchJson(path, options = {}) {
       const response = await fetch(path, options);
       if (!response.ok) throw new Error(`${path} returned ${response.status}`);
       return await response.json();
+    }
+
+    async function resetApi(payload) {
+      try {
+        return await fetchJson("/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        const query = new URLSearchParams(payload).toString();
+        return await fetchJson(`/reset?${query}`);
+      }
+    }
+
+    async function stepApi(action, payload = {}) {
+      try {
+        return await fetchJson("/step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, payload })
+        });
+      } catch (error) {
+        return await fetchJson(`/step?action=${encodeURIComponent(action)}`);
+      }
+    }
+
+    async function stateApi() {
+      return await fetchJson("/state");
     }
 
     async function runDemoIncident() {
@@ -1118,7 +1244,9 @@ _HTML = """<!doctype html>
 
     async function resetIncident() {
       setStatus("Resetting stale_retrieval demo incident...");
-      const state = await api("/reset", { seed: 42, family: "stale_retrieval" });
+      const state = await resetApi({ seed: 42, family: "stale_retrieval" });
+      demoStepCount = 0;
+      lastScore = 0;
       renderState(state);
       showDemoTab("trace");
       setStatus("Incident reset. Public trace is visible; hidden regression variants remain private.");
@@ -1126,7 +1254,8 @@ _HTML = """<!doctype html>
     }
 
     async function step(action, payload = {}) {
-      const result = await api("/step", { action, payload });
+      const result = await stepApi(action, payload);
+      demoStepCount += 1;
       renderState(result.observation);
       return result.observation;
     }
@@ -1149,6 +1278,7 @@ _HTML = """<!doctype html>
           setStatus(`Running verifier action: ${action}`);
           await step(action, payload || {});
         }
+        await stateApi();
         showDemoTab("certificate");
         setStatus("Correct repair path completed. Certificate generated only after evidence, patch, replay, hidden regressions, and preservation passed.");
       } catch (error) {
@@ -1175,7 +1305,7 @@ _HTML = """<!doctype html>
           await step(action, payload || {});
         }
         showDemoTab("certificate");
-        setStatus("Block-everything repair fails certificate gating because valid behavior preservation is part of the verifier.");
+        setStatus("Block-everything repair fails certificate gating: visible risk may be blocked, but valid behavior preservation fails and overblocking is detected.");
       } catch (error) {
         setStatus(`Demo error: ${error.message}`);
       }
@@ -1190,7 +1320,7 @@ _HTML = """<!doctype html>
       for (const panel of document.querySelectorAll(".panel")) panel.classList.remove("active");
       for (const tab of document.querySelectorAll(".tab")) tab.classList.remove("active");
       document.getElementById(`panel-${name}`).classList.add("active");
-      const labels = { trace: 0, evidence: 1, patch: 2, certificate: 3 };
+      const labels = { trace: 0, evidence: 1, patch: 2, regression: 3, certificate: 4 };
       document.querySelectorAll(".tab")[labels[name]].classList.add("active");
     }
 
@@ -1198,12 +1328,43 @@ _HTML = """<!doctype html>
       document.getElementById("demo-status").textContent = text;
     }
 
+    function clearConsole() {
+      demoStepCount = 0;
+      lastScore = 0;
+      document.getElementById("demo-family").textContent = "not started";
+      document.getElementById("demo-step").textContent = "0";
+      document.getElementById("demo-score").textContent = "0.000";
+      document.getElementById("demo-score-delta").textContent = "";
+      document.getElementById("demo-cert").textContent = "not generated";
+      document.getElementById("demo-hidden").textContent = "not run";
+      document.getElementById("demo-preserve").textContent = "not run";
+      document.getElementById("demo-overblocking").textContent = "not run";
+      document.getElementById("demo-trace").textContent = "Trace spans will appear here after reset.";
+      document.getElementById("demo-evidence").textContent = "Selected evidence and root cause will appear here.";
+      document.getElementById("demo-patch").textContent = "Repair patch and verifier reports will appear here.";
+      document.getElementById("demo-regression").textContent = "Hidden regression and preservation results will appear here.";
+      document.getElementById("demo-certificate").textContent = "Certificate outcome will appear here.";
+      showDemoTab("trace");
+      setStatus("Console cleared. Run a live episode when ready.");
+    }
+
     function renderState(state) {
       document.getElementById("demo-family").textContent = state.family || "unknown";
-      document.getElementById("demo-score").textContent = Number(state.score || 0).toFixed(3);
+      document.getElementById("demo-step").textContent = String(demoStepCount);
+      const score = Number(state.score || 0);
+      const delta = score - lastScore;
+      document.getElementById("demo-score").textContent = score.toFixed(3);
+      document.getElementById("demo-score-delta").textContent = delta > 0 ? `+${delta.toFixed(3)}` : "";
+      lastScore = score;
       document.getElementById("demo-cert").textContent = state.repair_certificate ? "generated" : "not generated";
       document.getElementById("demo-hidden").textContent = state.hidden_regression_summary
         ? String(state.hidden_regression_summary.passed)
+        : "not run";
+      document.getElementById("demo-preserve").textContent = state.hidden_regression_summary
+        ? String(state.hidden_regression_summary.hidden_valid_variants_preserved) + "/" + String(state.hidden_regression_summary.hidden_valid_variant_count)
+        : "not run";
+      document.getElementById("demo-overblocking").textContent = state.hidden_regression_summary
+        ? String(state.hidden_regression_summary.overblocking_detected)
         : "not run";
 
       const trace = (state.public_trace_spans || [])
@@ -1220,8 +1381,18 @@ _HTML = """<!doctype html>
       document.getElementById("demo-patch").textContent = JSON.stringify({
         submitted_patch: state.submitted_patch,
         visible_replay_report: state.visible_replay_report,
-        hidden_regression_summary: state.hidden_regression_summary,
         audit_flags: state.audit_flags
+      }, null, 2);
+
+      document.getElementById("demo-regression").textContent = JSON.stringify({
+        hidden_regression_summary: state.hidden_regression_summary,
+        valid_preservation: state.hidden_regression_summary
+          ? {
+              preserved: state.hidden_regression_summary.hidden_valid_variants_preserved,
+              total: state.hidden_regression_summary.hidden_valid_variant_count,
+              overblocking_detected: state.hidden_regression_summary.overblocking_detected
+            }
+          : null
       }, null, 2);
 
       document.getElementById("demo-certificate").textContent = JSON.stringify({
