@@ -347,7 +347,7 @@ Then use `--model outputs/sft_qwen25_05b_json/model` for the next tiny GRPO run 
 
 HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
 
-The Space now opens to a polished judge-facing interactive UI, not raw API JSON. The homepage explains the repair loop, failure families, deterministic verifier, hidden regressions, bounded certificate, real 0.5B training evidence, and the stop-loss decision on 1.5B.
+The Space now opens to a judge-facing research demo UI, not raw API JSON. It is organized around a fast audit path: sticky judge shortcuts, focused hero, quick proof strip, live benchmark console, benchmark identity, failure genome, verifier-scored results, experimental plots, testing options, trust/audit discipline, and compact resources.
 
 Space routes:
 
@@ -381,6 +381,8 @@ Final bounded result:
 - no 1.5B final result is claimed
 - no 4B result is claimed
 - video/blog link: `TODO_ADD_VIDEO_OR_BLOG_LINK`
+
+The live demo controls call the backend FastAPI environment directly, so judges can test the same reset/step/state loop used by the OpenEnv-style API.
 
 ## Safety Scope
 
