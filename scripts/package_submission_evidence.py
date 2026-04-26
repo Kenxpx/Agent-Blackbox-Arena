@@ -43,8 +43,13 @@ GLOB_PATTERNS = [
     "outputs/model_eval/**/*.json",
     "outputs/model_eval/**/*.jsonl",
     "outputs/model_eval/**/*.png",
+    "outputs/tracking/**/*.csv",
+    "outputs/tracking/**/*.json",
+    "outputs/tracking/**/events.out.tfevents*",
+    "outputs/final_plots/**/*.png",
     "hf_job_*_logs.txt",
     "notebooks/*.ipynb",
+    "notebooks/*.md",
 ]
 
 FORBIDDEN_PARTS = {

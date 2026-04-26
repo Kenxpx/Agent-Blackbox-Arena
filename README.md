@@ -140,6 +140,8 @@ The latest CPU audit also reports `evidence_correct_rate`, `root_cause_correct_r
 
 Post-hardening 0.5B result: the stricter challenge run completed, but it is **not** a final trained-model win. Standard SFT improved strict JSON and standard repair behavior, while `shuffled_surface_blind` and `combined_blind_shuffle` exposed an evidence-grounding failure: evidence correctness and certificate success dropped to zero on challenge variants. The current fix is a challenge-curriculum SFT path with variant-specific public span IDs; 1.5B remains locked until that 0.5B challenge curriculum is inspected.
 
+Experimental tracking is enabled through CSV/JSON logs plus TensorBoard-compatible artifacts under `outputs/tracking/`. Real loss/reward plots are generated only from those training logs and verifier-scored metrics.
+
 Run the audit:
 
 ```bash

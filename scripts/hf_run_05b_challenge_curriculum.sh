@@ -140,6 +140,9 @@ python scripts/plot_model_eval.py \
   --summary sft_shuffle=outputs/model_eval/sft_0_5b_challenge_curriculum_shuffled_surface_blind/summary.json \
   --summary sft_combined=outputs/model_eval/sft_0_5b_challenge_curriculum_combined_blind_shuffle/summary.json \
   --output-dir outputs/model_eval/challenge_curriculum
+python scripts/plot_training_tracking.py \
+  --reward-csv "${GRPO_DIR}/metrics.csv" \
+  --output-dir outputs/final_plots || true
 
 phase "Final summaries"
 print_json_if_exists "BASE 0.5B STANDARD SUMMARY" "outputs/model_eval/base_0_5b_standard/summary.json"

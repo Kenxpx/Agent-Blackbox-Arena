@@ -22,10 +22,12 @@ from training.make_dataset import (
     parse_seed_spec,
 )
 from training.quality_gate import build_stoploss_report, fail_on_quality_errors, validate_grpo_args, write_json
+from training.tracking import trainer_log_history, tracking_run_dir, write_training_tracking
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 
 METRIC_FIELDNAMES = [
+    "step",
     "reward_call",
     "sample_index",
     "prompt_id",
@@ -258,6 +260,7 @@ def make_verifier_reward_func(sampled_path: Path, metric_rows: list[dict[str, An
                 training_reward = verifier_score + format_reward_weight * format_reward
                 rewards.append(training_reward)
                 row = {
+                    "step": reward_call,
                     "reward_call": reward_call,
                     "sample_index": sample_index,
                     "prompt_id": str(prompt_ids[sample_index]),
@@ -313,7 +316,12 @@ def render_prompt_for_generation(tokenizer: Any, prompt: Any) -> str:
     return str(prompt)
 
 
-def write_training_metrics(output_dir: Path, metric_rows: list[dict[str, Any]], trainer_metrics: dict[str, Any]) -> None:
+def write_training_metrics(
+    output_dir: Path,
+    metric_rows: list[dict[str, Any]],
+    trainer_metrics: dict[str, Any],
+    trainer_history: list[dict[str, Any]] | None = None,
+) -> None:
     metrics_path = output_dir / "metrics.csv"
     summary_path = output_dir / "summary.json"
     with metrics_path.open("w", newline="", encoding="utf-8") as handle:
@@ -359,8 +367,17 @@ def write_training_metrics(output_dir: Path, metric_rows: list[dict[str, Any]], 
         writer.writeheader()
         writer.writerows(metric_rows)
 
+    if trainer_history:
+        history_path = output_dir / "trainer_log_history.csv"
+        history_fields = sorted({key for row in trainer_history for key in row})
+        with history_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=history_fields)
+            writer.writeheader()
+            writer.writerows(trainer_history)
+
 
 def build_grpo_config(GRPOConfig: Any, args: argparse.Namespace) -> Any:
+    tracking_dir = tracking_run_dir(args.output_dir, "grpo") / "trainer"
     config_kwargs = {
         "output_dir": str(args.output_dir),
         "learning_rate": args.learning_rate,
@@ -378,7 +395,8 @@ def build_grpo_config(GRPOConfig: Any, args: argparse.Namespace) -> Any:
         "logging_steps": args.logging_steps,
         "save_steps": args.save_steps,
         "bf16": args.bf16,
-        "report_to": [],
+        "report_to": ["tensorboard"],
+        "logging_dir": str(tracking_dir),
         "remove_unused_columns": False,
     }
     accepted = set(inspect.signature(GRPOConfig).parameters)
@@ -595,9 +613,10 @@ def run_full_grpo(args: argparse.Namespace) -> None:
     trainer = make_trainer(GRPOTrainer, model, tokenizer, reward_func, config, train_dataset, eval_dataset)
     train_result = trainer.train()
     trainer_metrics = dict(getattr(train_result, "metrics", {}) or {})
+    trainer_history = trainer_log_history(trainer)
     trainer.save_model(str(args.output_dir / "model"))
     tokenizer.save_pretrained(str(args.output_dir / "model"))
-    write_training_metrics(args.output_dir, metric_rows, trainer_metrics)
+    write_training_metrics(args.output_dir, metric_rows, trainer_metrics, trainer_history)
     heldout_summary = run_heldout_generation_eval(model, tokenizer, eval_rows, args)
     stoploss_report = build_stoploss_report(
         metric_rows,
@@ -606,11 +625,23 @@ def run_full_grpo(args: argparse.Namespace) -> None:
         mode="grpo",
     )
     write_json(args.output_dir / "stoploss_report.json", stoploss_report)
+    tracking_dir = write_training_tracking(
+        args.output_dir,
+        "grpo",
+        trainer_history=trainer_history,
+        verifier_rows=metric_rows,
+        summaries={
+            "trainer": trainer_metrics,
+            "heldout": heldout_summary,
+            "stoploss": {"status_pass": 1.0 if stoploss_report["status"] == "PASS" else 0.0},
+        },
+    )
 
     print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'metrics.csv'}")
     print(f"train_json_grpo: real GRPO wrote {sampled_path}")
     print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'summary.json'}")
     print(f"train_json_grpo: real GRPO wrote {args.output_dir / 'heldout_eval_summary.json'}")
+    print(f"train_json_grpo: tracking wrote {tracking_dir}")
     print(f"train_json_grpo: real GRPO stoploss_status={stoploss_report['status']}")
 
 

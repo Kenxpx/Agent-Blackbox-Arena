@@ -21,6 +21,7 @@ from training.make_dataset import (
     parse_seed_spec,
 )
 from training.quality_gate import build_stoploss_report, fail_on_quality_errors, validate_sft_args, write_json
+from training.tracking import trainer_log_history, tracking_run_dir, write_training_tracking
 from training.train_json_grpo import namespace_to_jsonable, run_heldout_generation_eval
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -131,6 +132,7 @@ def run_smoke(args: argparse.Namespace) -> None:
 
 
 def build_sft_config(SFTConfig: Any, args: argparse.Namespace) -> Any:
+    tracking_dir = tracking_run_dir(args.output_dir, "sft_warmstart") / "trainer"
     config_kwargs = {
         "output_dir": str(args.output_dir),
         "learning_rate": args.learning_rate,
@@ -143,7 +145,8 @@ def build_sft_config(SFTConfig: Any, args: argparse.Namespace) -> Any:
         "save_steps": args.save_steps,
         "completion_only_loss": True,
         "packing": False,
-        "report_to": [],
+        "report_to": ["tensorboard"],
+        "logging_dir": str(tracking_dir),
     }
     accepted = set(inspect.signature(SFTConfig).parameters)
     return SFTConfig(**{key: value for key, value in config_kwargs.items() if key in accepted})
@@ -259,6 +262,7 @@ def run_full_sft(args: argparse.Namespace) -> None:
     )
     train_result = trainer.train()
     trainer_metrics = dict(getattr(train_result, "metrics", {}) or {})
+    trainer_history = trainer_log_history(trainer)
     trainer.save_model(str(args.output_dir / "model"))
     tokenizer.save_pretrained(str(args.output_dir / "model"))
 
@@ -269,6 +273,7 @@ def run_full_sft(args: argparse.Namespace) -> None:
         "eval_records": len(eval_rows),
         "max_steps": args.max_steps,
         "use_lora": bool(args.use_lora),
+        "tracking_dir": str(tracking_run_dir(args.output_dir, "sft_warmstart")),
         "trainer_metrics": trainer_metrics,
         "note": "SFT warmstart teaches strict JSON format only; final claims require verifier-scored GRPO or held-out verifier metrics.",
     }
@@ -301,10 +306,22 @@ def run_full_sft(args: argparse.Namespace) -> None:
         "SFT is a strict-JSON warmstart. Treat PASS as formatting readiness, not final RL improvement."
     )
     write_json(args.output_dir / "sft_quality_report.json", quality_report)
+    tracking_dir = write_training_tracking(
+        args.output_dir,
+        "sft_warmstart",
+        trainer_history=trainer_history,
+        verifier_rows=heldout_rows,
+        summaries={
+            "trainer": trainer_metrics,
+            "heldout": heldout_summary,
+            "quality": {"status_pass": 1.0 if quality_report["status"] == "PASS" else 0.0},
+        },
+    )
 
     print(f"train_sft_warmstart: real SFT wrote {args.output_dir / 'sft_summary.json'}")
     print(f"train_sft_warmstart: real SFT wrote {args.output_dir / 'model'}")
     print(f"train_sft_warmstart: held-out verifier summary {args.output_dir / 'heldout_eval_summary.json'}")
+    print(f"train_sft_warmstart: tracking wrote {tracking_dir}")
     print(f"train_sft_warmstart: quality_status={quality_report['status']}")
 
 

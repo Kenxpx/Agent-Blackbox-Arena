@@ -60,6 +60,27 @@ Install training-only dependencies on the training runtime, not in the CPU Space
 pip install -e ".[training]"
 ```
 
+## Experimental Tracking
+
+Experimental tracking is enabled through CSV/JSON logs plus TensorBoard-compatible artifacts under `outputs/tracking/`.
+
+Tracked signals include:
+
+- SFT trainer loss when SFT runs
+- GRPO trainer loss when GRPO runs
+- verifier reward / `overall_score`
+- `invalid_json_rate`
+- `certificate_success_rate`
+- `hidden_regression_pass_rate`
+- `valid_preservation_rate`
+- `evidence_correct_rate`
+- `root_cause_correct_rate`
+- `patch_blocks_rate`
+- `overblocking_rate`
+- `hardcoded_patch_rate`
+
+CSV/JSON remains the source of truth. TensorBoard is an additional audit trail, not a replacement for `summary.json`, `metrics.csv`, `sampled_generations.jsonl`, or stop-loss reports.
+
 ## Model Ladder
 
 Run 1 - pipeline validation:

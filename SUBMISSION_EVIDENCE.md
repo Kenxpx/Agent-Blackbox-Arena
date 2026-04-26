@@ -99,6 +99,12 @@ Next prepared evidence run:
 - `scripts/hf_run_4b_stretch.sh` exists but is locked until the 1.5B run passes.
 - H200 is not part of the evidence plan until smaller gates show the benchmark and curriculum are scientifically healthy.
 
+Experimental tracking:
+
+- CSV/JSON logs remain the source of truth.
+- TensorBoard-compatible artifacts are written under `outputs/tracking/` during real SFT/GRPO runs.
+- Lightweight loss/reward plots are written under `outputs/final_plots/` only when real tracking or verifier reward rows exist.
+
 ## Stop-Loss Decisions
 
 Run 2 / 1.5B is locked until post-hardening 0.5B summaries are inspected.
