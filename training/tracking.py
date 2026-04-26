@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-TRACKING_ROOT = ROOT / "outputs" / "tracking"
+_TRACKING_ROOT_ENV = os.environ.get("AGENT_BLACKBOX_TRACKING_ROOT")
+TRACKING_ROOT = Path(_TRACKING_ROOT_ENV) if _TRACKING_ROOT_ENV else ROOT / "outputs" / "tracking"
+if not TRACKING_ROOT.is_absolute():
+    TRACKING_ROOT = ROOT / TRACKING_ROOT
 
 
 def tracking_run_dir(output_dir: Path, run_type: str) -> Path:
