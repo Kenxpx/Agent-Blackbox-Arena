@@ -109,9 +109,9 @@ def run_mock_eval(eval_rows: list[dict[str, Any]], mode: str) -> tuple[list[dict
     completions: list[dict[str, Any]] = []
     metrics: list[dict[str, Any]] = []
     for row in eval_rows:
-        completion = mock_completion(row["family"], int(row["seed"]), mode)
+        completion = mock_completion(row["family"], int(row["seed"]), mode, prompt_variant=str(row["prompt_variant"]))
         parsed, parse_error = parse_completion(completion)
-        scored = score_completion(row["family"], int(row["seed"]), completion)
+        scored = score_completion(row["family"], int(row["seed"]), completion, prompt_variant=str(row["prompt_variant"]))
         metric_row = {
             "model_label": "mock_" + mode,
             "prompt_id": row["id"],
@@ -158,7 +158,7 @@ def run_model_eval(eval_rows: list[dict[str, Any]], args: argparse.Namespace) ->
         batch_completions = generate_model_completions(model, tokenizer, [row["prompt"] for row in batch], args)
         for row, completion in zip(batch, batch_completions):
             parsed, parse_error = parse_completion(completion)
-            scored = score_completion(row["family"], int(row["seed"]), completion)
+            scored = score_completion(row["family"], int(row["seed"]), completion, prompt_variant=str(row["prompt_variant"]))
             metric_row = {
                 "model_label": args.model_label,
                 "prompt_id": row["id"],

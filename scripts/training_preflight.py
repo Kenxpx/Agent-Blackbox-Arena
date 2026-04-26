@@ -58,12 +58,13 @@ def run_preflight() -> dict[str, Any]:
         raise AssertionError(f"training prompts leak hidden terms: {leaked_terms}")
 
     target_metrics = []
-    for record in train_records:
+    challenge_records = build_records("train", [0], prompt_variant="combined_blind_shuffle")
+    for record in [*train_records, *challenge_records]:
         completion = json.dumps(record["target_json"], sort_keys=True)
         parsed, parse_error = parse_completion(completion)
         if parsed is None:
             raise AssertionError(f"SFT target is not parseable JSON: {parse_error}")
-        metrics = score_completion(record["family"], int(record["seed"]), completion)
+        metrics = score_completion(record["family"], int(record["seed"]), completion, prompt_variant=record["prompt_variant"])
         target_metrics.append(metrics)
         if metrics["overall_score"] < 1.0 or metrics["certificate_success"] != 1.0:
             raise AssertionError(f"SFT target does not pass verifier: {record['id']} {metrics}")
@@ -105,6 +106,7 @@ def run_preflight() -> dict[str, Any]:
     report = {
         "status": "PASS",
         "records_checked": len(all_records),
+        "challenge_target_records_checked": len(challenge_records),
         "families_checked": sorted({record["family"] for record in all_records}),
         "prompt_schema": "conversational_prompt_with_public_trace_only",
         "hidden_prompt_leakage": "passed",

@@ -33,6 +33,13 @@ Hardware recommendation:
 - Use L4 only for the 4B stretch run if needed.
 - Keep the environment server CPU-only; only model training needs GPU.
 
+Hardware escalation after challenge hardening:
+
+- Use **T4-small** for 0.5B diagnosis, challenge-curriculum SFT, and tiny optional GRPO. This is the right hardware for fixing evidence grounding.
+- Use **A10G-small or L4** for a 1.5B serious run only if the 0.5B challenge curriculum improves `shuffled_surface_blind` and `combined_blind_shuffle` evidence correctness and certificate success.
+- Use **L4 / A10G / A100** for an optional 4B stretch only after the 1.5B run works and budget remains.
+- Do **not** use H200 for prompt/curriculum bugs. H200 is only justifiable for a final large ablation after all smaller gates pass.
+
 ## Must Pass Before GPU
 
 - `python -m pytest`
@@ -118,6 +125,27 @@ SFT writes:
 
 Use the SFT checkpoint for GRPO only if held-out JSON improves and no overblocking or hardcoding appears. SFT alone is not the final RL result.
 
+Challenge-curriculum SFT command shape:
+
+```bash
+python training/train_sft_warmstart.py \
+  --confirm-real-training \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --max-steps 60 \
+  --train-seeds 0-9 \
+  --eval-seeds 1000-1002 \
+  --prompt-variants standard,shuffled_surface_blind,combined_blind_shuffle \
+  --eval-prompt-variant combined_blind_shuffle \
+  --output-dir outputs/sft_qwen25_05b_challenge_curriculum \
+  --per-device-train-batch-size 1 \
+  --gradient-accumulation-steps 1 \
+  --learning-rate 1e-5 \
+  --max-completion-length 160 \
+  --save-steps 60
+```
+
+This trains strict JSON, evidence selection, root cause, patch clauses, and preservation clauses across standard and challenge prompts. It does not weaken the verifier or certificate gate.
+
 ## GRPO Purpose
 
 GRPO is the intended first RL path because the environment has deterministic verifier rewards. The model receives a public failed trace and outputs one strict JSON repair plan.
@@ -140,6 +168,27 @@ After the first HF T4 attempt, the training path was hardened for Qwen Instruct 
 The format shaping reward exists only to escape the all-invalid-JSON cold start. It is not an environment score and must not be reported as benchmark improvement.
 
 After SFT warmstart, GRPO should be used only when there is still a harder-surface learning signal: for example standard plus `combined_blind_shuffle` challenge prompts where SFT is not already saturated. GRPO success requires nonzero reward variance or a clear improvement on challenge/generalization metrics. If `reward_std` is zero and `frac_reward_zero_std` is one, report the run as verifier-scored validation, not RL improvement.
+
+Mixed-variant GRPO command shape, only after challenge SFT looks healthy:
+
+```bash
+python training/train_json_grpo.py \
+  --confirm-real-training \
+  --model outputs/sft_qwen25_05b_challenge_curriculum/model \
+  --max-steps 10 \
+  --train-seeds 0-4 \
+  --eval-seeds 1000 \
+  --prompt-variants standard,shuffled_surface_blind,combined_blind_shuffle \
+  --eval-prompt-variant combined_blind_shuffle \
+  --output-dir outputs/grpo_05b_challenge_curriculum \
+  --num-generations 2 \
+  --per-device-train-batch-size 2 \
+  --gradient-accumulation-steps 1 \
+  --learning-rate 5e-6 \
+  --max-completion-length 160 \
+  --format-reward-weight 0.2 \
+  --save-steps 10
+```
 
 ## Training Quality Gate
 
@@ -299,75 +348,62 @@ Expected files:
 - `outputs/grpo_tiny_hf/model/`
 - `outputs/training_metrics.csv`
 
-## Run 2: 1.5B Command Template
+## Challenge-Curriculum 0.5B HF Command
 
-Use only after Run 1 writes valid metrics and sampled generations:
-
-```bash
-python training/train_json_grpo.py \
-  --confirm-real-training \
-  --model Qwen/Qwen2.5-1.5B-Instruct \
-  --max-steps 20 \
-  --train-seeds 0-5 \
-  --eval-seeds 1000-1002 \
-  --output-dir outputs/grpo_qwen25_15b \
-  --num-generations 2 \
-  --per-device-train-batch-size 2 \
-  --gradient-accumulation-steps 1 \
-  --learning-rate 5e-6 \
-  --max-completion-length 160 \
-  --format-reward-weight 0.2 \
-  --save-steps 20 \
-  --use-lora \
-  --lora-r 8 \
-  --lora-alpha 16 \
-  --lora-dropout 0.05
-```
-
-If `Qwen/Qwen2.5-1.5B-Instruct` is unavailable or unstable in the runtime, stop and choose the closest small Qwen instruct model. Do not jump straight to 4B without a working small-model log.
-
-## Run 3: 4B Stretch Template
-
-Use only if Run 1 works, Run 2 works or 1.5B is unavailable, budget remains, dependencies are stable, invalid JSON is under control, and throughput is acceptable:
+Use this before any 1.5B spend. It trains 0.5B SFT on mixed standard and challenge variants, evaluates standard / `shuffled_surface_blind` / `combined_blind_shuffle`, prints summary JSON, and skips GRPO by default.
 
 ```bash
-python training/train_json_grpo.py \
-  --confirm-real-training \
-  --model Qwen/Qwen3-4B-Instruct-2507 \
-  --max-steps 20 \
-  --train-seeds 0-5 \
-  --eval-seeds 1000-1002 \
-  --output-dir outputs/grpo_qwen3_4b_stretch \
-  --num-generations 2 \
-  --per-device-train-batch-size 2 \
-  --gradient-accumulation-steps 1 \
-  --learning-rate 3e-6 \
-  --max-completion-length 160 \
-  --format-reward-weight 0.2 \
-  --save-steps 20 \
-  --use-lora \
-  --lora-r 8 \
-  --lora-alpha 16 \
-  --lora-dropout 0.05
+hf jobs run \
+  --flavor t4-small \
+  --timeout 120m \
+  python:3.11 \
+  -- \
+  bash \
+  -lc \
+  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && bash scripts/hf_run_05b_challenge_curriculum.sh"
 ```
 
-Optional Unsloth runtime check for the stretch path:
+Enable optional GRPO only after SFT challenge metrics are healthy:
 
 ```bash
-python training/train_json_grpo.py \
-  --confirm-real-training \
-  --model Qwen/Qwen3-4B-Instruct-2507 \
-  --max-steps 5 \
-  --train-seeds 0-1 \
-  --eval-seeds 1000 \
-  --output-dir outputs/grpo_qwen3_4b_unsloth_probe \
-  --num-generations 2 \
-  --per-device-train-batch-size 2 \
-  --use-lora \
-  --use-unsloth
+RUN_GRPO=1 bash scripts/hf_run_05b_challenge_curriculum.sh
 ```
 
-Run the Unsloth probe only after plain TRL and LoRA have already worked. If Unsloth is missing or incompatible, stop and use the plain LoRA path.
+Do not run 1.5B until the 0.5B challenge-curriculum run shows nonzero challenge evidence correctness and certificate success, invalid JSON near zero, overblocking near zero, and hardcoded patch rate zero.
+
+## Run 2: 1.5B Locked HF Command
+
+Use only after the 0.5B challenge-curriculum run shows recovered challenge evidence correctness and certificate success. The script is locked by default and exits unless `CONFIRM_15B_CHALLENGE_PASSED=1` is set.
+
+```bash
+hf jobs run \
+  --flavor l4x1 \
+  --timeout 150m \
+  python:3.11 \
+  -- \
+  bash \
+  -lc \
+  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && CONFIRM_15B_CHALLENGE_PASSED=1 bash scripts/hf_run_15b_challenge_curriculum.sh"
+```
+
+The 1.5B script uses `Qwen/Qwen2.5-1.5B-Instruct`, LoRA SFT on mixed standard + challenge variants, standard / `shuffled_surface_blind` / `combined_blind_shuffle` eval, and optional GRPO only when `RUN_GRPO=1`. If the model is unavailable or unstable in the runtime, stop and choose the closest small Qwen instruct model. Do not jump straight to 4B without a working 1.5B log.
+
+## Run 3: 4B Stretch Locked HF Command
+
+Use only if 1.5B works, budget remains, dependencies are stable, invalid JSON is under control, challenge evidence is healthy, and throughput is acceptable. The script is locked by default and exits unless `CONFIRM_4B_AFTER_15B_PASSED=1` is set.
+
+```bash
+hf jobs run \
+  --flavor a10g-large \
+  --timeout 180m \
+  python:3.11 \
+  -- \
+  bash \
+  -lc \
+  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && CONFIRM_4B_AFTER_15B_PASSED=1 bash scripts/hf_run_4b_stretch.sh"
+```
+
+The 4B script uses `Qwen/Qwen3-4B-Instruct-2507`, LoRA SFT, the same challenge evals, and optional GRPO only when `RUN_GRPO=1`. H200 is optional only for a final ablation after this path is already validated; it should not be used to debug evidence prompts.
 
 ## Stop-Loss Rules
 

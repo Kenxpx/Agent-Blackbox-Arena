@@ -5,7 +5,7 @@ import pytest
 from agent_blackbox.incidents import IMPLEMENTED_FAMILIES, generate_incident
 from agent_blackbox.models import FORBIDDEN_PUBLIC_KEYS
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
-from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, ordered_candidates_for_prompt
+from training.make_dataset import assert_prompt_has_no_hidden_answers, build_records, ordered_candidates_for_prompt, public_span_id_map
 
 
 def family_spec(family):
@@ -120,6 +120,24 @@ def test_training_prompt_candidate_order_is_not_answer_position_shortcut(family)
         assert len(set(preserve_positions)) > 1, (family, prompt_variant, preserve_positions)
         assert len(set(require_first_clause_positions)) > 1, (family, prompt_variant, require_first_clause_positions)
         assert not all(position == 0 for position in root_positions)
+
+
+@pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)
+def test_challenge_public_span_ids_are_variant_specific_and_not_answer_shortcut(family):
+    _, oracle = generate_incident(family=family, seed=42)
+    expected_public_positions = []
+    for seed in range(1000, 1020):
+        record = build_records("eval", [seed], prompt_variant="combined_blind_shuffle")[IMPLEMENTED_FAMILIES.index(family)]
+        text = json.dumps(record["prompt"], ensure_ascii=False)
+        span_map = public_span_id_map(family, seed, prompt_variant="combined_blind_shuffle")
+        expected_public_spans = [span_map[span_id] for span_id in oracle.expected_evidence_spans]
+        assert record["target_json"]["evidence_spans"] == expected_public_spans
+        assert all(span_id in text for span_id in expected_public_spans)
+        assert "s2" not in text
+        assert "s4" not in text
+        expected_public_positions.extend(int(span_id[1:]) for span_id in expected_public_spans)
+
+    assert len(set(expected_public_positions)) > 1
 
 
 @pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)

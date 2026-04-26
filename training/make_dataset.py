@@ -111,6 +111,45 @@ def stable_shuffle(items: list[str], *, family: str, seed: int, prompt_variant: 
     return shuffled
 
 
+def stable_trace_order(spans: list[dict[str, Any]], *, family: str, seed: int, prompt_variant: str) -> list[dict[str, Any]]:
+    """Shuffle visible spans without using answer membership as a sort key."""
+    ordered = list(spans)
+    digest = hashlib.sha256(f"{family}:{seed}:{prompt_variant}:trace_order".encode("utf-8")).digest()
+    random.Random(int.from_bytes(digest[:8], "big")).shuffle(ordered)
+    return ordered
+
+
+def uses_public_span_aliases(prompt_variant: str) -> bool:
+    return prompt_variant in {"shuffled_spans", "shuffled_surface_blind", "combined_blind_shuffle"}
+
+
+def public_span_id_map(family: str, seed: int, prompt_variant: str = "standard") -> dict[str, str]:
+    """Map canonical trace span IDs to the IDs visible in a prompt variant."""
+    prompt_variant = normalize_prompt_variant(prompt_variant)
+    incident, _ = generate_incident(family=family, seed=seed)
+    public_spans = incident.public_trace()
+    if variant_has(prompt_variant, "shuffle"):
+        public_spans = stable_trace_order(public_spans, family=incident.family, seed=seed, prompt_variant=prompt_variant)
+    if not uses_public_span_aliases(prompt_variant):
+        return {span["span_id"]: span["span_id"] for span in public_spans}
+    return {span["span_id"]: f"v{index + 1}" for index, span in enumerate(public_spans)}
+
+
+def public_to_canonical_span_id_map(family: str, seed: int, prompt_variant: str = "standard") -> dict[str, str]:
+    canonical_to_public = public_span_id_map(family, seed, prompt_variant=prompt_variant)
+    return {public: canonical for canonical, public in canonical_to_public.items()}
+
+
+def public_evidence_spans(family: str, seed: int, canonical_spans: list[str], prompt_variant: str = "standard") -> list[str]:
+    canonical_to_public = public_span_id_map(family, seed, prompt_variant=prompt_variant)
+    return [canonical_to_public[span_id] for span_id in canonical_spans]
+
+
+def canonicalize_public_evidence_spans(family: str, seed: int, public_spans: list[str], prompt_variant: str = "standard") -> list[str]:
+    public_to_canonical = public_to_canonical_span_id_map(family, seed, prompt_variant=prompt_variant)
+    return [public_to_canonical.get(span_id, f"invalid_public_span:{span_id}") for span_id in public_spans]
+
+
 def ordered_candidates_for_prompt(family: str, seed: int, prompt_variant: str = "standard") -> dict[str, list[str]]:
     prompt_variant = normalize_prompt_variant(prompt_variant)
     incident, _ = generate_incident(family=family, seed=seed)
@@ -249,15 +288,18 @@ def prompt_text_for_incident(family: str, seed: int, prompt_variant: str = "stan
     candidates = ordered_candidates_for_prompt(incident.family, seed, prompt_variant=prompt_variant)
     public_spans = incident.public_trace()
     if variant_has(prompt_variant, "shuffle"):
-        public_spans = sorted(public_spans, key=lambda span: (span["span_id"] in {"s2", "s4"}, span["span_id"]), reverse=True)
+        public_spans = stable_trace_order(public_spans, family=incident.family, seed=seed, prompt_variant=prompt_variant)
+    span_id_map = public_span_id_map(incident.family, seed, prompt_variant=prompt_variant)
     trace_lines = []
     for span in public_spans:
+        visible_span_id = span_id_map[span["span_id"]]
         span_type = surface_rewrite(span["span_type"]) if variant_has(prompt_variant, "rewrite") else span["span_type"]
         summary = surface_rewrite(span["summary"]) if variant_has(prompt_variant, "rewrite") else span["summary"]
         if variant_has(prompt_variant, "rename_entities"):
             span_type = entity_rewrite(span_type, family=incident.family, seed=seed)
             summary = entity_rewrite(summary, family=incident.family, seed=seed)
-        trace_lines.append(f"- {span['span_id']} {span_type}: {summary}")
+        visible_tags = compact_json(span.get("visible_tags", []))
+        trace_lines.append(f"- {visible_span_id} | event_type={span_type} | tags={visible_tags} | text={summary}")
     scenario = surface_rewrite(incident.scenario) if variant_has(prompt_variant, "rewrite") else incident.scenario
     if variant_has(prompt_variant, "rename_entities"):
         scenario = entity_rewrite(scenario, family=incident.family, seed=seed)
@@ -272,6 +314,8 @@ scenario: {scenario}
 trace:
 {chr(10).join(trace_lines)}
 
+visible_span_ids: {compact_json([span_id_map[span["span_id"]] for span in public_spans])}
+
 Choose only from these candidates:
 root_cause: {compact_json(candidates["root_cause"])}
 require: {compact_json(candidates["require"])}
@@ -280,7 +324,10 @@ preserve: {compact_json(candidates["preserve"])}
 label_glossary: {compact_json(glossary_for({key: candidates[key] for key in ["require", "forbid", "preserve"]}))}
 
 Output requirements:
-- evidence_spans: trace span IDs only
+- evidence_spans: choose from visible_span_ids only
+- evidence_spans must identify both the failed final action and the earlier missing/unsafe control source
+- do not assume span IDs from prior examples; use the IDs printed in this current trace
+- if trace order or wording changes, re-read the visible span text and select evidence from this prompt
 - root_cause: exactly one candidate root cause
 - patch.require, patch.forbid, patch.preserve: allowed labels only
 - regression_tests: short test names for blocking the failure and preserving valid behavior
@@ -301,10 +348,10 @@ def build_prompt(family: str, seed: int, prompt_variant: str = "standard") -> li
     ]
 
 
-def build_target(family: str, seed: int) -> dict[str, Any]:
+def build_target(family: str, seed: int, prompt_variant: str = "standard") -> dict[str, Any]:
     _, oracle = generate_incident(family=family, seed=seed)
     return {
-        "evidence_spans": list(oracle.expected_evidence_spans),
+        "evidence_spans": public_evidence_spans(family, seed, list(oracle.expected_evidence_spans), prompt_variant=prompt_variant),
         "root_cause": oracle.true_root_cause,
         "patch": {
             "require": list(oracle.answer_key_clause_ids),
@@ -330,10 +377,26 @@ def build_records(split: str, seeds: Iterable[int], prompt_variant: str = "stand
                     "seed": seed,
                     "prompt_variant": prompt_variant,
                     "prompt": build_prompt(family, seed, prompt_variant=prompt_variant),
-                    "target_json": build_target(family, seed),
+                    "target_json": build_target(family, seed, prompt_variant=prompt_variant),
                 }
             )
     return records
+
+
+def parse_prompt_variants(value: str) -> list[str]:
+    variants = [part.strip() for part in value.split(",") if part.strip()]
+    if not variants:
+        raise ValueError("at least one prompt variant is required")
+    for variant in variants:
+        normalize_prompt_variant(variant)
+    return list(dict.fromkeys(variants))
+
+
+def build_mixed_records(split: str, seeds: Iterable[int], prompt_variants: Iterable[str]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for prompt_variant in prompt_variants:
+        rows.extend(build_records(split, seeds, prompt_variant=prompt_variant))
+    return rows
 
 
 def assert_prompt_has_no_hidden_answers(record: dict[str, Any]) -> None:
@@ -358,9 +421,16 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
 
 
-def make_dataset(output_dir: Path, train_seeds: list[int], eval_seeds: list[int], prompt_variant: str = "standard") -> dict[str, Any]:
+def make_dataset(
+    output_dir: Path,
+    train_seeds: list[int],
+    eval_seeds: list[int],
+    prompt_variant: str = "standard",
+    prompt_variants: list[str] | None = None,
+) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    train_records = build_records("train", train_seeds, prompt_variant=prompt_variant)
+    train_prompt_variants = prompt_variants or [prompt_variant]
+    train_records = build_mixed_records("train", train_seeds, train_prompt_variants)
     eval_records = build_records("eval", eval_seeds, prompt_variant=prompt_variant)
     for record in [*train_records, *eval_records]:
         assert_prompt_has_no_hidden_answers(record)
@@ -374,6 +444,7 @@ def make_dataset(output_dir: Path, train_seeds: list[int], eval_seeds: list[int]
         "train_records": len(train_records),
         "eval_records": len(eval_records),
         "prompt_variant": prompt_variant,
+        "train_prompt_variants": train_prompt_variants,
         "challenge_variants": list(CHALLENGE_VARIANTS),
         "prompt_leakage_check": "passed",
     }
@@ -388,6 +459,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--train-seeds", default=DEFAULT_TRAIN_SEEDS)
     parser.add_argument("--eval-seeds", default=DEFAULT_EVAL_SEEDS)
     parser.add_argument("--prompt-variant", choices=CHALLENGE_VARIANTS, default="standard")
+    parser.add_argument(
+        "--prompt-variants",
+        default=None,
+        help="Comma-separated train prompt variants. Defaults to --prompt-variant for backward compatibility.",
+    )
     return parser
 
 
@@ -395,7 +471,8 @@ def main() -> int:
     args = build_arg_parser().parse_args()
     train_seeds = parse_seed_spec("0-1" if args.smoke else args.train_seeds)
     eval_seeds = parse_seed_spec("1000" if args.smoke else args.eval_seeds)
-    summary = make_dataset(args.output_dir, train_seeds, eval_seeds, prompt_variant=args.prompt_variant)
+    prompt_variants = parse_prompt_variants(args.prompt_variants) if args.prompt_variants else None
+    summary = make_dataset(args.output_dir, train_seeds, eval_seeds, prompt_variant=args.prompt_variant, prompt_variants=prompt_variants)
     print(f"make_dataset: wrote {args.output_dir / 'train.jsonl'}")
     print(f"make_dataset: wrote {args.output_dir / 'eval.jsonl'}")
     print(f"make_dataset: wrote {args.output_dir / 'dataset_summary.json'}")

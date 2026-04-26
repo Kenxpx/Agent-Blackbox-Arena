@@ -138,6 +138,8 @@ Perfect scores on a tiny eval are not enough. Before scaling to 1.5B or making f
 
 The latest CPU audit also reports `evidence_correct_rate`, `root_cause_correct_rate`, `patch_blocks_rate`, and `certificate_gate_fail_rate` so trained results can be diagnosed instead of reduced to one score.
 
+Post-hardening 0.5B result: the stricter challenge run completed, but it is **not** a final trained-model win. Standard SFT improved strict JSON and standard repair behavior, while `shuffled_surface_blind` and `combined_blind_shuffle` exposed an evidence-grounding failure: evidence correctness and certificate success dropped to zero on challenge variants. The current fix is a challenge-curriculum SFT path with variant-specific public span IDs; 1.5B remains locked until that 0.5B challenge curriculum is inspected.
+
 Run the audit:
 
 ```bash

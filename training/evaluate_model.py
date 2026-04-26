@@ -14,7 +14,12 @@ if str(ROOT) not in sys.path:
 from agent_blackbox.incidents import IMPLEMENTED_FAMILIES, generate_incident
 from agent_blackbox.verifier import exact_span_match, list_contains_all, validate_patch_schema
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
-from training.make_dataset import build_target, parse_seed_spec
+from training.make_dataset import (
+    build_target,
+    canonicalize_public_evidence_spans,
+    parse_seed_spec,
+    public_evidence_spans,
+)
 
 
 def extract_first_json_object(text: str) -> str | None:
@@ -88,7 +93,7 @@ def patch_for_env(parsed: dict[str, Any]) -> dict[str, Any]:
     return patch
 
 
-def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
+def score_completion(family: str, seed: int, completion: str, prompt_variant: str = "standard") -> dict[str, Any]:
     parsed, error = parse_completion(completion)
     if parsed is None:
         return {
@@ -110,9 +115,15 @@ def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
 
     env = AgentBlackBoxEnvironment()
     env.reset(seed=seed, family=family)
+    canonical_evidence_spans = canonicalize_public_evidence_spans(
+        family,
+        seed,
+        list(parsed["evidence_spans"]),
+        prompt_variant=prompt_variant,
+    )
     env.step("inspect_trace")
     env.step("replay_incident")
-    env.step({"action": "select_evidence_spans", "payload": {"evidence_spans": parsed["evidence_spans"]}})
+    env.step({"action": "select_evidence_spans", "payload": {"evidence_spans": canonical_evidence_spans}})
     env.step({"action": "submit_root_cause", "payload": {"root_cause": parsed["root_cause"]}})
     env.step({"action": "propose_repair_patch", "payload": {"patch": patch_for_env(parsed)}})
     env.step({"action": "compile_regression_tests", "payload": {"regression_tests": parsed["regression_tests"]}})
@@ -125,7 +136,13 @@ def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
     patch = patch_for_env(parsed)
     _, oracle = generate_incident(family=family, seed=seed)
     patch_schema_valid, _ = validate_patch_schema(patch)
-    evidence_correct = exact_span_match(parsed["evidence_spans"], oracle.expected_evidence_spans)
+    expected_public_evidence = public_evidence_spans(
+        family,
+        seed,
+        list(oracle.expected_evidence_spans),
+        prompt_variant=prompt_variant,
+    )
+    evidence_correct = exact_span_match(parsed["evidence_spans"], expected_public_evidence)
     root_cause_correct = parsed["root_cause"] == oracle.true_root_cause
     patch_blocks = (
         patch_schema_valid
@@ -155,10 +172,10 @@ def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
     }
 
 
-def mock_completion(family: str, seed: int, mode: str) -> str:
+def mock_completion(family: str, seed: int, mode: str, prompt_variant: str = "standard") -> str:
     if mode == "invalid_json":
         return "{not valid json"
-    target = build_target(family, seed)
+    target = build_target(family, seed, prompt_variant=prompt_variant)
     if mode == "oracle":
         return json.dumps(target)
     if mode == "wrapped_json":
@@ -265,14 +282,21 @@ def main() -> int:
     metrics: list[dict[str, Any]] = []
     if args.completions_jsonl:
         for row in load_completion_rows(args.completions_jsonl):
-            metrics.append(score_completion(row["family"], int(row["seed"]), row["completion"]))
+            metrics.append(
+                score_completion(
+                    row["family"],
+                    int(row["seed"]),
+                    row["completion"],
+                    prompt_variant=str(row.get("prompt_variant", "standard")),
+                )
+            )
     else:
         seeds = parse_seed_spec("1000" if args.smoke else args.eval_seeds)
         modes = ["oracle", "invalid_json", "wrapped_json", "block_everything", "hardcoded"] if args.mock_policy == "mixed" else [args.mock_policy]
         for family in IMPLEMENTED_FAMILIES:
             for seed in seeds:
                 for mode in modes:
-                    metrics.append(score_completion(family, seed, mock_completion(family, seed, mode)))
+                    metrics.append(score_completion(family, seed, mock_completion(family, seed, mode), prompt_variant="standard"))
     summary = summarize(metrics)
     write_metrics(args.output_dir, metrics, summary)
     print(f"evaluate_model: wrote {args.output_dir / 'metrics.csv'}")

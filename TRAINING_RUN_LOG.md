@@ -598,3 +598,63 @@ Decision:
 
 - **GO** for one controlled post-hardening 0.5B rerun.
 - **NO-GO** for 1.5B until the post-hardening 0.5B standard, `shuffled_surface_blind`, and `combined_blind_shuffle` summaries are inspected.
+
+## Post-Hardening 0.5B Challenge Result
+
+Job ID: `69ed986cd70108f37acdf8ba`
+
+Status: `COMPLETED`
+
+Marker: `POST_HARDENING_0_5B_COMPLETE`
+
+Decision: **NO-GO for 1.5B, NO-GO for 4B, NO-GO for final trained-model improvement claims.**
+
+Key result:
+
+- Base 0.5B standard emitted invalid JSON: `overall_score=0.0`, `invalid_json_rate=1.0`.
+- SFT 0.5B standard became useful: `overall_score=0.8353`, `certificate_success_rate=0.65`, `evidence_correct_rate=1.0`, `invalid_json_rate=0.0`.
+- SFT challenge prompts failed evidence grounding:
+  - `shuffled_surface_blind`: `overall_score=0.268`, `certificate_success_rate=0.0`, `evidence_correct_rate=0.0`, `overblocking_rate=0.1`.
+  - `combined_blind_shuffle`: `overall_score=0.405`, `certificate_success_rate=0.0`, `evidence_correct_rate=0.0`, `overblocking_rate=0.0333`.
+- SFT+GRPO standard did not improve over SFT: `overall_score=0.7727`, `certificate_success_rate=0.5167`.
+- SFT+GRPO challenge prompts still failed evidence grounding:
+  - `shuffled_surface_blind`: `overall_score=0.297`, `certificate_success_rate=0.0`, `evidence_correct_rate=0.0`, `overblocking_rate=0.1167`.
+  - `combined_blind_shuffle`: `overall_score=0.385`, `certificate_success_rate=0.0`, `evidence_correct_rate=0.0`, `overblocking_rate=0.0333`.
+- GRPO stoploss: `STOP`, failure `overblocking_rate is nonzero`, warning that held-out score beat random but certificate success was zero.
+
+Diagnosis:
+
+- The model can emit valid JSON.
+- The model often predicts root cause correctly.
+- The failure is evidence grounding under shuffled/blinded challenge prompts.
+- Strict certificate gating is working as intended because it blocks certificates when evidence is wrong.
+- This is a curriculum/prompt-grounding issue, not a reason to jump to 1.5B, 4B, or H200.
+
+Patch after diagnosis:
+
+- Challenge prompts now use variant-specific public span aliases such as `v1` through `v4`; old standard IDs like `s2` and `s4` are invalid in aliased challenge prompts.
+- Prompt text now includes public span metadata and explicit evidence-selection instructions.
+- SFT and GRPO now support mixed challenge curriculum through `--prompt-variants`.
+- Added `scripts/diagnose_challenge_failures.py`.
+- Added `scripts/hf_run_05b_challenge_curriculum.sh`.
+
+Next gate:
+
+- Run one 0.5B challenge-curriculum HF job.
+- Do not run 1.5B until challenge evidence correctness and certificate success improve without invalid JSON, overblocking, or hardcoding.
+
+## Challenge-Curriculum Script Lock
+
+Status: `PREPARED LOCALLY`
+
+Scripts:
+
+- `scripts/hf_run_05b_challenge_curriculum.sh`: unlocked next run. Uses 0.5B mixed standard + challenge SFT, challenge eval, real plots, and optional GRPO disabled by default.
+- `scripts/hf_run_15b_challenge_curriculum.sh`: locked. Exits unless `CONFIRM_15B_CHALLENGE_PASSED=1` is set after the 0.5B challenge-curriculum run passes.
+- `scripts/hf_run_4b_stretch.sh`: locked. Exits unless `CONFIRM_4B_AFTER_15B_PASSED=1` is set after the 1.5B run passes.
+
+Hardware decision:
+
+- T4-small remains the next appropriate machine for 0.5B curriculum validation.
+- L4/A10G is appropriate for 1.5B only after 0.5B challenge evidence recovers.
+- A100/H200 is not justified for prompt or curriculum debugging; it is reserved only for optional final stretch/ablation after smaller gates pass.

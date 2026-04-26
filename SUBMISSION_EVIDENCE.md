@@ -21,7 +21,7 @@ Training and evaluation have been run through Hugging Face Jobs CLI and reposito
 | `69ed520cd2c8bd8662bcea54` | `t4-small` | canceled | Larger-eval attempt canceled intentionally. |
 | `69ed549bd70108f37acdf273` | `t4-small` | completed | Pre-hardening larger 0.5B standard and shuffled challenge evaluation. |
 
-Post-hardening 0.5B evaluation with `combined_blind_shuffle` has not been run yet.
+Post-hardening 0.5B job `69ed986cd70108f37acdf8ba` completed and printed `POST_HARDENING_0_5B_COMPLETE`. It is not final improvement evidence: challenge variants exposed evidence-grounding failure and GRPO stoploss reported `STOP`. The next evidence step is a 0.5B challenge-curriculum run, not 1.5B.
 
 ## Commands And Scripts
 
@@ -91,6 +91,13 @@ Post-hardening evidence still required:
 - fresh `shuffled_surface_blind` eval
 - fresh `combined_blind_shuffle` eval
 - plots generated only from those real model-eval summaries
+
+Next prepared evidence run:
+
+- `scripts/hf_run_05b_challenge_curriculum.sh` is the next unlocked HF script.
+- `scripts/hf_run_15b_challenge_curriculum.sh` exists but is locked until the 0.5B challenge-curriculum run passes.
+- `scripts/hf_run_4b_stretch.sh` exists but is locked until the 1.5B run passes.
+- H200 is not part of the evidence plan until smaller gates show the benchmark and curriculum are scientifically healthy.
 
 ## Stop-Loss Decisions
 

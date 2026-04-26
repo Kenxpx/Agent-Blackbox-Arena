@@ -19,6 +19,7 @@ outputs/model_eval/
 outputs/model_eval_smoke/
 outputs/model_eval_smoke_plots/
 outputs/training_challenge_smoke/
+outputs/challenge_failure_diagnosis/
 outputs/**/model/
 .cache/
 wandb/
