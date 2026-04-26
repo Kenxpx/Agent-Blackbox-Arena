@@ -1,0 +1,10 @@
+{
+  "error_seen": false,
+  "log": "hf_job_15b_challenge_curriculum_69edaafcd70108f37acdfadb_logs.txt",
+  "loss_rows": 80,
+  "post_complete_marker": false,
+  "run_label": "hf_15b_challenge_curriculum_canceled",
+  "stop_seen": true,
+  "summaries_extracted": [],
+  "traceback_seen": false
+}

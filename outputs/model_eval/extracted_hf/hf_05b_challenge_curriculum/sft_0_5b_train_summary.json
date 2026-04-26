@@ -1,0 +1,17 @@
+{
+  "eval_records": 9,
+  "max_steps": 60,
+  "mode": "real_sft_warmstart",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "note": "SFT warmstart teaches strict JSON format only; final claims require verifier-scored GRPO or held-out verifier metrics.",
+  "tracking_dir": "/Agent-Blackbox-Arena/outputs/tracking/sft_warmstart_sft_qwen25_05b_challenge_curriculum",
+  "train_records": 90,
+  "trainer_metrics": {
+    "total_flos": 95494374243840.0,
+    "train_loss": 0.17912229592135798,
+    "train_runtime": 65.1379,
+    "train_samples_per_second": 0.921,
+    "train_steps_per_second": 0.921
+  },
+  "use_lora": false
+}

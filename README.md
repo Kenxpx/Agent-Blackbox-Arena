@@ -138,7 +138,18 @@ Perfect scores on a tiny eval are not enough. Before scaling to 1.5B or making f
 
 The latest CPU audit also reports `evidence_correct_rate`, `root_cause_correct_rate`, `patch_blocks_rate`, and `certificate_gate_fail_rate` so trained results can be diagnosed instead of reduced to one score.
 
-Post-hardening 0.5B result: the stricter challenge run completed, but it is **not** a final trained-model win. Standard SFT improved strict JSON and standard repair behavior, while `shuffled_surface_blind` and `combined_blind_shuffle` exposed an evidence-grounding failure: evidence correctness and certificate success dropped to zero on challenge variants. The current fix is a challenge-curriculum SFT path with variant-specific public span IDs; 1.5B remains locked until that 0.5B challenge curriculum is inspected.
+Post-hardening 0.5B result: the first stricter challenge run completed, but it was **not** a final trained-model win. Standard SFT improved strict JSON and standard repair behavior, while `shuffled_surface_blind` and `combined_blind_shuffle` exposed an evidence-grounding failure: evidence correctness and certificate success dropped to zero on challenge variants.
+
+Final selected trained evidence: a 0.5B challenge-curriculum SFT run recovered nonzero challenge evidence grounding without invalid JSON, hardcoded patches, or challenge overblocking. It is a bounded result, not a broad safety claim:
+
+| Model / eval | Overall | Certificate | Evidence | Hidden pass | Valid preserve | Invalid JSON | Overblocking |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Base 0.5B standard | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 1.0000 | 0.0000 |
+| 0.5B SFT standard | 0.9492 | 0.9333 | 1.0000 | 0.9667 | 0.9333 | 0.0000 | 0.0500 |
+| 0.5B SFT shuffled_surface_blind | 0.6710 | 0.1833 | 0.1833 | 0.9750 | 0.9833 | 0.0000 | 0.0000 |
+| 0.5B SFT combined_blind_shuffle | 0.6753 | 0.2167 | 0.2167 | 0.9750 | 1.0000 | 0.0000 | 0.0000 |
+
+The 1.5B run was attempted and canceled by stop-loss after SFT reported `quality_status=STOP`; no 1.5B or 4B result is claimed.
 
 Experimental tracking is enabled through CSV/JSON logs plus TensorBoard-compatible artifacts under `outputs/tracking/`. Real loss/reward plots are generated only from those training logs and verifier-scored metrics.
 
@@ -326,7 +337,7 @@ Then use `--model outputs/sft_qwen25_05b_json/model` for the next tiny GRPO run 
 
 ## Hugging Face Space
 
-Placeholder Space link: `TODO_ADD_HF_SPACE_LINK`
+HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
 
 The Space runtime is CPU-runnable:
 
@@ -346,10 +357,12 @@ The Agent Repair Certificate is bounded to the generated finite incident family,
 
 ## Links To Add Before Final Submission
 
-- Hugging Face Space: `TODO_ADD_HF_SPACE_LINK`
+- Hugging Face Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
 - Video/blog/slides: `TODO_ADD_VIDEO_OR_BLOG_LINK`
-- Real training plots after a real run: `TODO_ADD_REAL_TRAINING_PLOTS`
+- Real training plots:
+  - `outputs/final_plots/hf_05b_challenge_curriculum_training_loss_curve.png`
+  - `outputs/final_plots/hf_05b_challenge_curriculum_verifier_reward_comparison.png`
 
 ## No Fake Results
 
-This repo does not claim broad trained model improvement yet. Current public tables are baseline/smoke evidence plus a real tiny-run pipeline validation recorded in `TRAINING_RUN_LOG.md`. Trained-vs-baseline claims will be added only after saved real logs, stop-loss reports, held-out metrics, and plots support them.
+This repo does not claim broad trained model improvement. Current public tables are baseline evidence plus real HF Jobs evidence recorded in `TRAINING_RUN_LOG.md` and extracted into `outputs/model_eval/extracted_hf/`. The trained evidence is bounded to the reported seeds and challenge variants.

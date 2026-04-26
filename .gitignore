@@ -13,9 +13,14 @@ build/
 hf_token*
 .DS_Store
 hf_job_*_logs.txt
+!hf_job_05b_challenge_curriculum_69eda5a4d70108f37acdfa48_logs.txt
+!hf_job_15b_challenge_curriculum_69edaafcd70108f37acdfadb_logs.txt
 outputs/training_preflight_report.json
 outputs/generalization_audit/
 outputs/model_eval/
+!outputs/model_eval/
+!outputs/model_eval/extracted_hf/
+!outputs/model_eval/extracted_hf/**
 outputs/model_eval_smoke/
 outputs/model_eval_smoke_plots/
 outputs/training_challenge_smoke/

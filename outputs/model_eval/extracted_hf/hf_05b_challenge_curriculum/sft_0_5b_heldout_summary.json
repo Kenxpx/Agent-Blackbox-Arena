@@ -1,0 +1,15 @@
+{
+  "certificate_gate_fail_rate": 0.8889,
+  "certificate_success_rate": 0.1111,
+  "episodes": 9,
+  "evidence_correct_rate": 0.1111,
+  "hardcoded_patch_rate": 0.0,
+  "hidden_regression_pass_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "mode": "heldout_generation_eval",
+  "overall_score": 0.6089,
+  "overblocking_rate": 0.0,
+  "patch_blocks_rate": 1.0,
+  "root_cause_correct_rate": 0.7778,
+  "valid_preservation_rate": 1.0
+}

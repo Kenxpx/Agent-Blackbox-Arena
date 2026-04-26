@@ -1,0 +1,85 @@
+{
+  "by_family": {
+    "missing_verification": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.0,
+      "episodes": 20,
+      "evidence_correct_rate": 0.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "invalid_json_rate": 1.0,
+      "overall_score": 0.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 0.0,
+      "root_cause_correct_rate": 0.0,
+      "valid_preservation_rate": 0.0
+    },
+    "permission_scope": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.0,
+      "episodes": 20,
+      "evidence_correct_rate": 0.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "invalid_json_rate": 1.0,
+      "overall_score": 0.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 0.0,
+      "root_cause_correct_rate": 0.0,
+      "valid_preservation_rate": 0.0
+    },
+    "stale_retrieval": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.0,
+      "episodes": 20,
+      "evidence_correct_rate": 0.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "invalid_json_rate": 1.0,
+      "overall_score": 0.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 0.0,
+      "root_cause_correct_rate": 0.0,
+      "valid_preservation_rate": 0.0
+    }
+  },
+  "by_prompt_variant": {
+    "standard": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.0,
+      "episodes": 60,
+      "evidence_correct_rate": 0.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.0,
+      "invalid_json_rate": 1.0,
+      "overall_score": 0.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 0.0,
+      "root_cause_correct_rate": 0.0,
+      "valid_preservation_rate": 0.0
+    }
+  },
+  "certificate_gate_fail_rate": 0.0,
+  "certificate_success_rate": 0.0,
+  "episodes": 60,
+  "eval_seeds": "1000-1019",
+  "evidence_correct_rate": 0.0,
+  "families": [
+    "stale_retrieval",
+    "missing_verification",
+    "permission_scope"
+  ],
+  "hardcoded_patch_rate": 0.0,
+  "hidden_regression_pass_rate": 0.0,
+  "invalid_json_rate": 1.0,
+  "mode": "model",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model_label": "base_0_5b",
+  "note": "Verifier-scored held-out model completions.",
+  "overall_score": 0.0,
+  "overblocking_rate": 0.0,
+  "patch_blocks_rate": 0.0,
+  "prompt_variant": "standard",
+  "root_cause_correct_rate": 0.0,
+  "valid_preservation_rate": 0.0
+}

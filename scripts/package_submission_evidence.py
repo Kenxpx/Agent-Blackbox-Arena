@@ -19,6 +19,7 @@ EXACT_FILES = [
     "TRAINING.md",
     "TRAINING_RUN_LOG.md",
     "SUBMISSION_EVIDENCE.md",
+    "FINAL_SUBMISSION_AUDIT.md",
     "outputs/results.csv",
     "outputs/baseline_summary.json",
     "outputs/baseline_scores.png",

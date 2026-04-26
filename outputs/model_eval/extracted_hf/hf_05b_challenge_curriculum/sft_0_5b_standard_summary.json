@@ -1,0 +1,85 @@
+{
+  "by_family": {
+    "missing_verification": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "permission_scope": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.95,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.975,
+      "invalid_json_rate": 0.0,
+      "overall_score": 0.978,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 0.95
+    },
+    "stale_retrieval": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.85,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.925,
+      "invalid_json_rate": 0.0,
+      "overall_score": 0.8695,
+      "overblocking_rate": 0.15,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 0.85
+    }
+  },
+  "by_prompt_variant": {
+    "standard": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 0.9333,
+      "episodes": 60,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 0.9667,
+      "invalid_json_rate": 0.0,
+      "overall_score": 0.9492,
+      "overblocking_rate": 0.05,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 0.9333
+    }
+  },
+  "certificate_gate_fail_rate": 0.0,
+  "certificate_success_rate": 0.9333,
+  "episodes": 60,
+  "eval_seeds": "1000-1019",
+  "evidence_correct_rate": 1.0,
+  "families": [
+    "stale_retrieval",
+    "missing_verification",
+    "permission_scope"
+  ],
+  "hardcoded_patch_rate": 0.0,
+  "hidden_regression_pass_rate": 0.9667,
+  "invalid_json_rate": 0.0,
+  "mode": "model",
+  "model": "outputs/sft_qwen25_05b_challenge_curriculum/model",
+  "model_label": "sft_0_5b_challenge_curriculum_standard",
+  "note": "Verifier-scored held-out model completions.",
+  "overall_score": 0.9492,
+  "overblocking_rate": 0.05,
+  "patch_blocks_rate": 1.0,
+  "prompt_variant": "standard",
+  "root_cause_correct_rate": 1.0,
+  "valid_preservation_rate": 0.9333
+}

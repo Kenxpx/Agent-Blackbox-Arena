@@ -643,6 +643,51 @@ Next gate:
 - Run one 0.5B challenge-curriculum HF job.
 - Do not run 1.5B until challenge evidence correctness and certificate success improve without invalid JSON, overblocking, or hardcoding.
 
+## Challenge-Curriculum 0.5B Result
+
+Job ID: `69eda5a4d70108f37acdfa48`
+
+Status: `COMPLETED`
+
+Marker: `POST_CHALLENGE_CURRICULUM_0_5B_COMPLETE`
+
+Decision: **GO for one 1.5B attempt, but final selected evidence remains 0.5B after the 1.5B stop-loss.**
+
+Extracted local evidence:
+
+- `outputs/model_eval/extracted_hf/hf_05b_challenge_curriculum/`
+- `outputs/final_plots/hf_05b_challenge_curriculum_training_loss_curve.png`
+- `outputs/final_plots/hf_05b_challenge_curriculum_verifier_reward_comparison.png`
+
+Key metrics:
+
+- Base 0.5B standard: `overall_score=0.0`, `invalid_json_rate=1.0`.
+- 0.5B SFT standard: `overall_score=0.9492`, `certificate_success_rate=0.9333`, `evidence_correct_rate=1.0`, `invalid_json_rate=0.0`, `overblocking_rate=0.05`.
+- 0.5B SFT `shuffled_surface_blind`: `overall_score=0.6710`, `certificate_success_rate=0.1833`, `evidence_correct_rate=0.1833`, `hidden_regression_pass_rate=0.975`, `valid_preservation_rate=0.9833`, `invalid_json_rate=0.0`, `overblocking_rate=0.0`.
+- 0.5B SFT `combined_blind_shuffle`: `overall_score=0.6753`, `certificate_success_rate=0.2167`, `evidence_correct_rate=0.2167`, `hidden_regression_pass_rate=0.975`, `valid_preservation_rate=1.0`, `invalid_json_rate=0.0`, `overblocking_rate=0.0`.
+
+Interpretation:
+
+- Challenge evidence correctness recovered from `0.0` to nonzero on both challenge variants.
+- The result is useful but not perfect; it supports a bounded training claim, not broad generalization.
+
+## 1.5B Stop-Loss Attempt
+
+Job ID: `69edaafcd70108f37acdfadb`
+
+Status: `CANCELED`
+
+Reason:
+
+- 1.5B SFT printed `quality_status=STOP`.
+- The job was canceled before GRPO to avoid wasting credit and producing misleading reward curves.
+
+Decision:
+
+- **NO-GO** for 1.5B headline result.
+- **NO-GO** for 4B/H200.
+- Use the 0.5B challenge-curriculum SFT result as final trained evidence.
+
 ## Challenge-Curriculum Script Lock
 
 Status: `PREPARED LOCALLY`

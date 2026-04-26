@@ -1,0 +1,17 @@
+{
+  "error_seen": false,
+  "log": "hf_job_05b_challenge_curriculum_69eda5a4d70108f37acdfa48_logs.txt",
+  "loss_rows": 60,
+  "post_complete_marker": true,
+  "run_label": "hf_05b_challenge_curriculum",
+  "stop_seen": false,
+  "summaries_extracted": [
+    "base_0_5b_standard",
+    "sft_0_5b_combined_blind_shuffle",
+    "sft_0_5b_heldout",
+    "sft_0_5b_shuffled_surface_blind",
+    "sft_0_5b_standard",
+    "sft_0_5b_train"
+  ],
+  "traceback_seen": false
+}

@@ -92,6 +92,13 @@ Post-hardening evidence still required:
 - fresh `combined_blind_shuffle` eval
 - plots generated only from those real model-eval summaries
 
+Post-curriculum evidence now available:
+
+- HF job `69eda5a4d70108f37acdfa48` completed and printed `POST_CHALLENGE_CURRICULUM_0_5B_COMPLETE`.
+- Extracted summaries are under `outputs/model_eval/extracted_hf/hf_05b_challenge_curriculum/`.
+- Real plots are under `outputs/final_plots/`.
+- The 1.5B attempt `69edaafcd70108f37acdfadb` was canceled after `quality_status=STOP`; no 1.5B result is claimed.
+
 Next prepared evidence run:
 
 - `scripts/hf_run_05b_challenge_curriculum.sh` is the next unlocked HF script.
