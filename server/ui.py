@@ -375,13 +375,79 @@ _HTML = """<!doctype html>
     }
 
     .proof-item {
+      min-height: 92px;
       padding: 13px 12px;
       border-radius: 8px;
-      background: rgba(2, 6, 23, 0.42);
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.80), rgba(2, 6, 23, 0.46)),
+        radial-gradient(circle at top right, rgba(34, 211, 238, 0.10), transparent 9rem);
       border: 1px solid rgba(148, 163, 184, 0.12);
     }
-    .proof-item strong { display: block; font-size: 1.18rem; color: #f8fafc; }
-    .proof-item span { color: var(--muted); font-size: 0.82rem; }
+    .proof-item strong { display: block; font-size: 1.34rem; color: #f8fafc; line-height: 1.05; }
+    .proof-item span { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 6px; }
+    .proof-item small {
+      display: block;
+      color: #a5f3fc;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .impact-workspace {
+      padding: 18px 0 30px;
+    }
+    .workspace-panel {
+      border: 1px solid rgba(34, 211, 238, 0.22);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(8, 47, 73, 0.28), rgba(15, 23, 42, 0.70)),
+        radial-gradient(circle at 12% 0%, rgba(52, 211, 153, 0.14), transparent 22rem);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .workspace-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .workspace-head h2 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.3rem);
+      line-height: 1.05;
+    }
+    .workspace-head p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 560px;
+    }
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 10px;
+    }
+    .workspace-card {
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(2, 6, 23, 0.42);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 132px;
+    }
+    .workspace-card strong { display: block; color: #f8fafc; font-size: 1.02rem; margin-bottom: 8px; }
+    .workspace-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .workspace-card code {
+      display: inline-block;
+      margin-top: 10px;
+      color: #bbf7d0;
+      background: rgba(2, 6, 23, 0.50);
+      border: 1px solid rgba(52, 211, 153, 0.18);
+      border-radius: 7px;
+      padding: 5px 7px;
+      font-size: 0.78rem;
+    }
 
     .console {
       border: 1px solid rgba(34, 211, 238, 0.24);
@@ -510,11 +576,30 @@ _HTML = """<!doctype html>
       gap: 9px;
     }
     .loop-step {
+      position: relative;
       min-height: 96px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px;
-      background: rgba(15, 23, 42, 0.66);
+      padding: 14px 12px 12px;
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.42)),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.09), transparent 9rem);
+      overflow: hidden;
+    }
+    .loop-step::before {
+      content: attr(data-step);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      color: #a5f3fc;
+      font-size: 0.72rem;
+      font-weight: 950;
+      margin-bottom: 10px;
+      background: rgba(8, 47, 73, 0.35);
     }
     .loop-step b { display: block; color: #f8fafc; margin-bottom: 5px; }
     .loop-step span { display: block; color: var(--muted); font-size: 0.86rem; }
@@ -789,7 +874,7 @@ _HTML = """<!doctype html>
     }
 
     @media (max-width: 1000px) {
-      .hero-grid, .console-grid, .benchmark-band, .trust-grid { grid-template-columns: 1fr; }
+      .hero-grid, .console-grid, .benchmark-band, .trust-grid, .workspace-grid { grid-template-columns: 1fr; }
       .console-side { border-right: 0; border-bottom: 1px solid var(--line); }
       .proof-grid, .results-grid, .takeaways, .resource-grid, .variant-chips, .scoreboards { grid-template-columns: repeat(2, 1fr); }
       .family-grid, .test-grid { grid-template-columns: 1fr; }
@@ -803,6 +888,8 @@ _HTML = """<!doctype html>
       .nav-links { justify-content: flex-start; }
       .hero { padding-top: 48px; }
       .proof-grid, .results-grid, .takeaways, .resource-grid, .loop, .signal-grid, .variant-chips, .scoreboards { grid-template-columns: 1fr; }
+      .workspace-head { display: block; }
+      .workspace-head p { margin-top: 10px; }
       .button { width: 100%; }
       .section-head { display: block; }
       .section-head p { margin-top: 10px; }
@@ -865,13 +952,42 @@ _HTML = """<!doctype html>
       </div>
     </section>
 
-    <section class="proof-strip" aria-label="Quick proof strip">
+    <section class="proof-strip" aria-label="Quick impact strip">
       <div class="wrap proof-grid">
-        <div class="proof-item"><strong>3</strong><span>failure genes</span></div>
-        <div class="proof-item"><strong>hidden</strong><span>regressions</span></div>
-        <div class="proof-item"><strong>deterministic</strong><span>verifier</span></div>
-        <div class="proof-item"><strong>live</strong><span>OpenEnv API</span></div>
-        <div class="proof-item"><strong>real</strong><span>training plots</span></div>
+        <div class="proof-item"><small>standard</small><strong>1.0000</strong><span>overall, certificate, evidence</span></div>
+        <div class="proof-item"><small>shuffled</small><strong>0.9557</strong><span>surface-blind challenge score</span></div>
+        <div class="proof-item"><small>combined</small><strong>0.9367</strong><span>blind + shuffled challenge score</span></div>
+        <div class="proof-item"><small>safety</small><strong>0.0000</strong><span>invalid JSON / overblocking / hardcoded</span></div>
+        <div class="proof-item"><small>benchmark</small><strong>3 genes</strong><span>stale retrieval, verification, scope</span></div>
+        <div class="proof-item"><small>artifact</small><strong>live API</strong><span>demo, metadata, reset, step, state</span></div>
+      </div>
+    </section>
+
+    <section class="impact-workspace" aria-label="Sixty second judge workspace">
+      <div class="wrap">
+        <div class="workspace-panel">
+          <div class="workspace-head">
+            <h2>60-second judge workspace</h2>
+            <p>A quick path for reviewers: see the live environment, understand the verifier loop, then open the evidence bundle without reading every document first.</p>
+          </div>
+          <div class="workspace-grid">
+            <a class="workspace-card" href="#demo">
+              <strong>1. Play the repair episode</strong>
+              <p>Run a correct repair and a block-everything baseline. The score, hidden regressions, preservation, and certificate gates update live.</p>
+              <code>interactive OpenEnv API</code>
+            </a>
+            <a class="workspace-card" href="#benchmark">
+              <strong>2. Read the visual loop</strong>
+              <p>Failed trace becomes evidence, root cause, patch, replay, hidden regressions, preservation, and a bounded certificate.</p>
+              <code>trace -> certificate</code>
+            </a>
+            <a class="workspace-card" href="#resources">
+              <strong>3. Open the proof pack</strong>
+              <p>Notebook, final metrics, training logs, final audit, and public submission checklist are linked from one resource grid.</p>
+              <code>evidence, not claims</code>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -970,14 +1086,14 @@ _HTML = """<!doctype html>
             </div>
           </div>
           <div class="loop" aria-label="Benchmark loop">
-            <div class="loop-step"><b>failed trace</b><span>public evidence source</span></div>
-            <div class="loop-step"><b>evidence</b><span>visible spans only</span></div>
-            <div class="loop-step"><b>root cause</b><span>failure gene</span></div>
-            <div class="loop-step"><b>repair patch</b><span>bounded DSL</span></div>
-            <div class="loop-step"><b>visible replay</b><span>diagnosis check</span></div>
-            <div class="loop-step"><b>hidden regressions</b><span>generalization pressure</span></div>
-            <div class="loop-step"><b>preservation</b><span>valid flow protected</span></div>
-            <div class="loop-step"><b>certificate</b><span>gated trust artifact</span></div>
+            <div class="loop-step" data-step="01"><b>failed trace</b><span>public evidence source</span></div>
+            <div class="loop-step" data-step="02"><b>evidence</b><span>visible spans only</span></div>
+            <div class="loop-step" data-step="03"><b>root cause</b><span>failure gene</span></div>
+            <div class="loop-step" data-step="04"><b>repair patch</b><span>bounded DSL</span></div>
+            <div class="loop-step" data-step="05"><b>visible replay</b><span>diagnosis check</span></div>
+            <div class="loop-step" data-step="06"><b>hidden regressions</b><span>generalization pressure</span></div>
+            <div class="loop-step" data-step="07"><b>preservation</b><span>valid flow protected</span></div>
+            <div class="loop-step" data-step="08"><b>certificate</b><span>gated trust artifact</span></div>
           </div>
         </div>
       </div>

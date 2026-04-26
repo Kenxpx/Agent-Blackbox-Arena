@@ -55,6 +55,16 @@ Start here:
 - Tests: [`tests/`](tests/)
 - Archived planning/audit history: [`docs/archive/`](docs/archive/)
 
+## 60-Second Judge Path
+
+For a quick review, open the live app first and use the new judge workspace:
+
+1. Run the live repair episode and compare the correct repair against the block-everything baseline.
+2. Read the visual benchmark loop: failed trace -> evidence -> root cause -> patch -> replay -> hidden regressions -> certificate.
+3. Open the proof pack from the Space resources: notebook, final metrics, final log, audit, and evidence ledger.
+
+This is the shortest path to see the environment, the verifier behavior, and the final training result before reading the full documentation.
+
 ## Why This Stands Out
 
 - It is an interactive OpenEnv-style repair environment, not a static leaderboard table.

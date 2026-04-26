@@ -12,6 +12,7 @@ This is the benchmark I wanted to submit in a field where strong RL and ML resea
 - Final HF Job: `69edcef7d70108f37acdfeb3`
 - Final result: standard `1.0000`, shuffled `0.9557`, combined `0.9367`
 - Safety rates: invalid JSON `0.0000`, overblocking `0.0000`, hardcoded patch `0.0000`
+- Quick review path: open the live Space, run the repair episode, then open the evidence pack from the resource grid.
 - Main idea: observability shows what happened; Agent BlackBox trains an agent to decide what should change and prove the repair survives regressions.
 
 ## The Problem
