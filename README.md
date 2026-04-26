@@ -264,6 +264,18 @@ Run the server:
 uvicorn server.app:app --host 0.0.0.0 --port 8000
 ```
 
+## Submission Evidence
+
+Training and evaluation logs are tracked in `TRAINING_RUN_LOG.md`; the evidence policy and known HF job IDs are tracked in `SUBMISSION_EVIDENCE.md`.
+
+Package real evidence files only:
+
+```bash
+python scripts/package_submission_evidence.py
+```
+
+This writes `submission_evidence/` and `submission_evidence.zip` with a `MANIFEST.json`. The packager skips missing optional files, model weight folders, cache folders, token-like files, and secrets. No notebook was used unless a real `notebooks/*.ipynb` file exists.
+
 ## Future Real GRPO Command
 
 Use only after all smoke checks are green and GPU budget is approved:

@@ -9,6 +9,8 @@ dist/
 build/
 *.egg-info/
 .env
+*.token
+hf_token*
 .DS_Store
 hf_job_*_logs.txt
 outputs/training_preflight_report.json
@@ -17,3 +19,9 @@ outputs/model_eval/
 outputs/model_eval_smoke/
 outputs/model_eval_smoke_plots/
 outputs/training_challenge_smoke/
+outputs/**/model/
+.cache/
+wandb/
+runs/
+submission_evidence/
+submission_evidence.zip
