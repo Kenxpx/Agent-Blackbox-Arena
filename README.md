@@ -21,10 +21,47 @@ The environment is the core innovation. Training evidence is used to prove that 
 ## Public Submission Links
 
 - HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
+- Live app: https://kenxpx-agent-blackbox-arena.hf.space/
 - Training notebook: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb
 - Blog post: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/BLOG.md
 - Final form checklist: [`FINAL_FORM_SUBMISSION_CHECKLIST.md`](FINAL_FORM_SUBMISSION_CHECKLIST.md)
 - Evidence package: generated locally as `submission_evidence.zip` by `python scripts/package_submission_evidence.py`
+
+## Judge Quick Links
+
+Start here:
+
+- Live environment: https://kenxpx-agent-blackbox-arena.hf.space/
+- Submission checklist: [`FINAL_FORM_SUBMISSION_CHECKLIST.md`](FINAL_FORM_SUBMISSION_CHECKLIST.md)
+- Blog writeup: [`BLOG.md`](BLOG.md)
+- Training rerun notebook: [`notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb`](notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb)
+- Evidence ledger: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md)
+- Final audit: [`FINAL_SUBMISSION_AUDIT.md`](FINAL_SUBMISSION_AUDIT.md)
+- Recent H200 run report: [`FINAL_RECENT_H200_RUNS_REPORT.md`](FINAL_RECENT_H200_RUNS_REPORT.md)
+- Full training history: [`TRAINING_RUN_LOG.md`](TRAINING_RUN_LOG.md)
+- Final metrics and plots: [`docs/final_assets/`](docs/final_assets/)
+- Final metrics JSON: [`docs/final_assets/metrics/final_qwen3_4b_metrics.json`](docs/final_assets/metrics/final_qwen3_4b_metrics.json)
+- Final metrics table: [`docs/final_assets/tables/final_qwen3_4b_metrics.md`](docs/final_assets/tables/final_qwen3_4b_metrics.md)
+- Final H200 log: [`logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt`](logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt)
+- Benchmark spec: [`BENCHMARK_SPEC.md`](BENCHMARK_SPEC.md)
+- Training guide: [`TRAINING.md`](TRAINING.md)
+- Safety scope: [`SAFETY.md`](SAFETY.md)
+- OpenEnv manifest: [`openenv.yaml`](openenv.yaml)
+- Environment server: [`server/`](server/)
+- Core benchmark package: [`agent_blackbox/`](agent_blackbox/)
+- Training code: [`training/`](training/)
+- Submission/evaluation scripts: [`scripts/`](scripts/)
+- Tests: [`tests/`](tests/)
+- Archived planning/audit history: [`docs/archive/`](docs/archive/)
+
+## Why This Stands Out
+
+- It is an interactive OpenEnv-style repair environment, not a static leaderboard table.
+- It trains the full reliability loop: trace evidence, replay, root cause, bounded patch, hidden regressions, valid preservation, and certificate gating.
+- The reward is deterministic and verifier-scored; there is no LLM judge.
+- Weak shortcuts are penalized: invalid JSON, block-everything repairs, hardcoded incident IDs, premature certificates, and hidden-regression probing.
+- The final Qwen3-4B H200 SFT+GRPO run improves the historical 0.5B challenge baseline from `0.6710` to `0.9557` on shuffled prompts and from `0.6753` to `0.9367` on combined blind-shuffle prompts.
+- The claim is bounded, with real logs, plots, metrics, stop-loss records, and failed/intermediate runs kept in the audit trail.
 
 ## Not A Dashboard
 
@@ -440,6 +477,7 @@ The Agent Repair Certificate is bounded to the generated finite incident family,
 ## Submission Links
 
 - Hugging Face Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
+- Live app: https://kenxpx-agent-blackbox-arena.hf.space/
 - Training notebook: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb
 - Blog: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/BLOG.md
 - Final form checklist: [`FINAL_FORM_SUBMISSION_CHECKLIST.md`](FINAL_FORM_SUBMISSION_CHECKLIST.md)
