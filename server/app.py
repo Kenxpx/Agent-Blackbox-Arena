@@ -41,9 +41,19 @@ def reset(payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
     return env.reset(seed=int(payload.get("seed", 42)), family=str(payload.get("family", "stale_retrieval")))
 
 
+@app.get("/reset")
+def reset_get(seed: int = 42, family: str = "stale_retrieval") -> Dict[str, Any]:
+    return env.reset(seed=seed, family=family)
+
+
 @app.post("/step")
 def step(payload: Dict[str, Any]) -> Dict[str, Any]:
     return env.step(Action.from_any(payload))
+
+
+@app.get("/step")
+def step_get(action: str = "inspect_trace") -> Dict[str, Any]:
+    return env.step(action)
 
 
 @app.get("/state")

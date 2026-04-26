@@ -15,6 +15,9 @@
   "train_records": 6,
   "eval_records": 3,
   "prompt_variant": "standard",
+  "train_prompt_variants": [
+    "standard"
+  ],
   "challenge_variants": [
     "standard",
     "shuffled_spans",

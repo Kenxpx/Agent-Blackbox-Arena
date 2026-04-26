@@ -137,18 +137,6 @@ _HTML = """<!doctype html>
       white-space: nowrap;
     }
 
-    .brand-mark {
-      width: 31px;
-      height: 31px;
-      display: grid;
-      place-items: center;
-      border-radius: 8px;
-      border: 1px solid rgba(34, 211, 238, 0.50);
-      color: var(--cyan);
-      background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(52, 211, 153, 0.10));
-      font-size: 12px;
-    }
-
     .nav-links {
       display: flex;
       flex-wrap: wrap;
@@ -210,9 +198,10 @@ _HTML = """<!doctype html>
 
     h1 {
       margin: 0;
-      font-size: clamp(3.2rem, 7.5vw, 6.7rem);
-      line-height: 0.92;
+      font-size: clamp(2.8rem, 6.1vw, 5.45rem);
+      line-height: 0.96;
       letter-spacing: 0;
+      max-width: 760px;
     }
 
     .subtitle {
@@ -310,6 +299,32 @@ _HTML = """<!doctype html>
     }
 
     .artifact-body { padding: 16px; }
+    .certificate-lines {
+      display: grid;
+      gap: 10px;
+    }
+    .certificate-line {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(2, 6, 23, 0.54);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .certificate-line span {
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      font-weight: 950;
+    }
+    .certificate-line strong {
+      color: #f8fafc;
+      font-size: 0.94rem;
+    }
+    .certificate-line strong.pass { color: #bbf7d0; }
+    .certificate-line strong.bound { color: #fde68a; }
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
     pre {
       margin: 0;
@@ -797,7 +812,7 @@ _HTML = """<!doctype html>
 <body>
   <header class="topbar">
     <div class="wrap nav">
-      <a class="brand" href="#top" aria-label="Agent BlackBox Arena home"><span class="brand-mark mono">AB</span><span>Agent BlackBox Arena</span></a>
+      <a class="brand" href="#top" aria-label="Agent BlackBox Arena home"><span>Agent BlackBox Arena</span></a>
       <nav class="nav-links" aria-label="Judge shortcuts">
         <a href="#demo">Demo</a>
         <a href="#benchmark">Benchmark</a>
@@ -817,13 +832,14 @@ _HTML = """<!doctype html>
           <div class="eyebrow">Live OpenEnv-style repair environment</div>
           <h1>Agent BlackBox Arena</h1>
           <p class="subtitle">Replay. Repair. Regress. Certify.</p>
-          <p class="pitch">An OpenEnv-style benchmark where agents turn failed AI-agent traces into verifier-scored repair policies that must survive hidden regressions and preserve valid behavior.</p>
+          <p class="pitch">An OpenEnv-style repair environment where agents turn failed AI-agent traces into verifier-scored repair patches, hidden regressions, and bounded certificates.</p>
           <p class="hero-note">Trains agents to decide what should change, not just observe what happened.</p>
           <div class="badges">
             <span class="badge cyan">OpenEnv-style environment</span>
             <span class="badge green">Deterministic verifier</span>
             <span class="badge violet">Hidden regressions</span>
             <span class="badge">Repair Patch DSL</span>
+            <span class="badge green">Training evidence included</span>
           </div>
           <div class="button-row">
             <button class="button primary" type="button" onclick="runDemoIncident()">Run Live Demo</button>
@@ -831,25 +847,19 @@ _HTML = """<!doctype html>
             <a class="button" href="#test">Test API</a>
           </div>
           <div class="button-row" style="margin-top:10px">
-            <button class="button subtle" type="button" onclick="showCertificate()">View Certificate</button>
             <a class="button subtle" href="$GITHUB_ROOT" target="_blank" rel="noopener noreferrer">Open GitHub</a>
+            <a class="button subtle" href="$GITHUB_ROOT/blob/main/FINAL_SUBMISSION_AUDIT.md" target="_blank" rel="noopener noreferrer">Open Final Audit</a>
           </div>
         </div>
         <aside class="artifact-card" aria-label="Bounded certificate preview">
           <div class="artifact-head"><span>bounded verifier artifact</span><span>not a global proof</span></div>
           <div class="artifact-body">
-            <pre>{
-  "artifact": "Agent Repair Certificate",
-  "requires": [
-    "replay completed",
-    "evidence spans correct",
-    "root cause correct",
-    "patch blocks failure",
-    "hidden regressions pass",
-    "valid behavior preserved"
-  ],
-  "scope": "synthetic families + verifier horizon"
-}</pre>
+            <div class="certificate-lines">
+              <div class="certificate-line"><span>artifact</span><strong>Agent Repair Certificate</strong></div>
+              <div class="certificate-line"><span>verifier gates</span><strong class="pass">replay, evidence, root cause, patch, hidden regressions</strong></div>
+              <div class="certificate-line"><span>preservation</span><strong class="pass">valid behavior must remain allowed</strong></div>
+              <div class="certificate-line"><span>scope</span><strong class="bound">synthetic families + verifier horizon</strong></div>
+            </div>
           </div>
         </aside>
       </div>
@@ -857,12 +867,11 @@ _HTML = """<!doctype html>
 
     <section class="proof-strip" aria-label="Quick proof strip">
       <div class="wrap proof-grid">
-        <div class="proof-item"><strong>3</strong><span>failure families</span></div>
-        <div class="proof-item"><strong>live</strong><span>reset / step / state API</span></div>
-        <div class="proof-item"><strong>hidden</strong><span>regression variants</span></div>
-        <div class="proof-item"><strong>0.0</strong><span>final invalid JSON rate</span></div>
-        <div class="proof-item"><strong>strict</strong><span>certificate gate</span></div>
-        <div class="proof-item"><strong>real</strong><span>HF training evidence</span></div>
+        <div class="proof-item"><strong>3</strong><span>failure genes</span></div>
+        <div class="proof-item"><strong>hidden</strong><span>regressions</span></div>
+        <div class="proof-item"><strong>deterministic</strong><span>verifier</span></div>
+        <div class="proof-item"><strong>live</strong><span>OpenEnv API</span></div>
+        <div class="proof-item"><strong>real</strong><span>training plots</span></div>
       </div>
     </section>
 
