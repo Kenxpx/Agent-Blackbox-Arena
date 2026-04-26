@@ -38,6 +38,7 @@ The benchmark is designed around three research lessons that elite RL reviewers 
 
 - **Reward hacking is expected under optimization pressure.** The reward therefore contains explicit anti-hacking checks for block-everything patches, hardcoded incident IDs, hidden-test probes, certificate-before-verifier behavior, and valid-flow overblocking.
 - **Leakage can inflate evaluation.** The training and evaluation seed ranges are separated, hidden oracle fields are never placed in prompts, and challenge prompts can blind the family label while preserving the same public trace evidence.
+- **Candidate order can become a shortcut.** Root-cause and patch-label candidates are deterministically shuffled by family, seed, and prompt variant so the correct answer is not always in the same position.
 - **Verifier success is not enough unless preservation is measured.** The agent must both block failed variants and preserve valid behavior before the certificate gate opens.
 
 Related references used for the training and evaluation design:
@@ -218,6 +219,8 @@ A certificate is generated only after visible replay and hidden regressions pass
 
 It is not a global safety proof.
 
+Certificate gating additionally requires exact evidence-span correctness and correct root cause. A patch that blocks hidden variants but cites the wrong evidence cannot produce a certificate.
+
 ## Family Specs
 
 The MVP families are three different failure genes, not cosmetic variants. Each has a distinct root cause, control family, forbidden effect, and preservation requirement.
@@ -255,6 +258,10 @@ Challenge prompts preserve the same public failure semantics but shuffle trace o
 - certificate success rate
 - hidden regression pass rate
 - valid preservation rate
+- evidence correct rate
+- root cause correct rate
+- patch blocks rate
+- certificate gate fail rate
 - invalid JSON rate
 - overblocking rate
 - hardcoded patch rate

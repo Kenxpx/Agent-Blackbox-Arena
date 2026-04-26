@@ -524,3 +524,42 @@ Unsafe claim even if the larger eval passes:
 - "GRPO learned the task from scratch."
 - "The benchmark proves production safety."
 - "The result generalizes beyond reported seeds and challenge variants."
+
+## Rank-1 Hardening Pass Before 1.5B
+
+Status: `COMPLETED LOCALLY`
+
+Purpose:
+
+- remove candidate-order shortcuts before scaling
+- make certificate success stricter
+- add richer diagnostics for model-eval claims
+- keep the environment identity and reward weights unchanged
+
+Changes:
+
+- Root-cause, require, forbid, and preserve candidates are deterministically shuffled by family, seed, and prompt variant.
+- `generate_repair_certificate` now requires correct evidence spans in addition to correct root cause, visible replay, hidden regressions, and valid preservation.
+- Model-eval metrics now include:
+  - `evidence_correct_rate`
+  - `root_cause_correct_rate`
+  - `patch_blocks_rate`
+  - `certificate_gate_fail_rate`
+- `scripts/generalization_audit.py` now audits candidate answer positions across challenge seeds.
+- `scripts/plot_model_eval.py` can plot the new diagnostic metrics when fresh model-eval summaries contain them.
+
+Local verification:
+
+- `python training/make_dataset.py --smoke --output-dir outputs/training_smoke`: passed
+- `python training/train_json_grpo.py --smoke --output-dir outputs/grpo_smoke`: passed
+- `python training/evaluate_model.py --smoke --output-dir outputs/eval_smoke`: passed
+- `python training/train_sft_warmstart.py --smoke --output-dir outputs/sft_smoke`: passed
+- `python scripts/generalization_audit.py`: `leakage_status=PASS`
+- `python scripts/self_check.py`: passed
+- `python -m pytest`: `47 passed`
+
+Decision after hardening:
+
+- The previous 0.5B same-job result remains valid historical evidence for the pre-hardening pipeline.
+- Final claims should use a fresh post-hardening 0.5B same-job evaluation.
+- 1.5B remains approved only after the post-hardening 0.5B evaluation does not collapse on challenge prompts.

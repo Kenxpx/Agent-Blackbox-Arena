@@ -64,6 +64,8 @@ Each episode exposes only public information:
 
 Hidden oracle fields, expected patches, raw seeds, hidden variants, and verifier internals are never placed in public observations.
 
+Candidate root causes and patch labels are deterministically shuffled per family, seed, and prompt variant. This prevents the model from using candidate order as a shortcut, while keeping every prompt reproducible.
+
 ## Actions
 
 The agent can take these actions:
@@ -108,7 +110,7 @@ The reward is deterministic and verifier-based. It measures:
 - hidden regressions pass
 - certificate is generated
 
-The verifier penalizes invalid JSON, unknown clauses, wrong root causes, patches without evidence, block-everything behavior, overblocking valid flows, hardcoded incident IDs, hidden-test probing, premature certificates, timeouts, and repeated hidden-regression calls.
+The verifier penalizes invalid JSON, unknown clauses, wrong root causes, patches without evidence, block-everything behavior, overblocking valid flows, hardcoded incident IDs, hidden-test probing, premature certificates, timeouts, and repeated hidden-regression calls. Certificate generation now requires correct evidence spans as well as correct root cause, visible replay, hidden regressions, and valid preservation.
 
 ## Why Hidden Regressions Matter
 
@@ -128,8 +130,12 @@ Perfect scores on a tiny eval are not enough. Before scaling to 1.5B or making f
 - prompt leakage scans
 - larger held-out evaluation over seeds such as `1000-1049`
 - challenge prompts with shuffled trace spans, rewritten surface wording, and blinded family labels
+- deterministic candidate-order shuffling so answer position is not a learnable label
+- stricter certificate gating on evidence correctness
 - base vs SFT vs SFT+GRPO comparison
 - plots generated only from real model-evaluation summaries
+
+The latest CPU audit also reports `evidence_correct_rate`, `root_cause_correct_rate`, `patch_blocks_rate`, and `certificate_gate_fail_rate` so trained results can be diagnosed instead of reduced to one score.
 
 Run the audit:
 
@@ -163,7 +169,7 @@ Challenge eval swaps `--prompt-variant shuffled_surface_blind`.
 
 ## Baseline Results
 
-Current table results are baseline and smoke results. The first controlled 0.5B HF run validates the strict JSON training pipeline after SFT warmup, but final trained-model comparison claims will be added only after real plots and wider held-out evidence are generated.
+Current table results are baseline and smoke results. A controlled 0.5B HF run validated the strict JSON training pipeline after SFT warmup, but the benchmark has since been hardened against candidate-order shortcuts and loose certificate success. Final trained-model comparison claims should use a fresh post-hardening HF evaluation.
 
 These baseline results are generated from `outputs/results.csv` over 5 baselines x 3 families x 10 deterministic seeds.
 

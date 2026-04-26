@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from agent_blackbox.incidents import IMPLEMENTED_FAMILIES, generate_incident
+from agent_blackbox.verifier import exact_span_match, list_contains_all, validate_patch_schema
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
 from training.make_dataset import build_target, parse_seed_spec
 
@@ -97,6 +98,10 @@ def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
             "certificate_success": 0.0,
             "hidden_regression_pass_rate": 0.0,
             "valid_preservation_rate": 0.0,
+            "evidence_correct": 0.0,
+            "root_cause_correct": 0.0,
+            "patch_blocks_failure": 0.0,
+            "certificate_gate_fail": 0.0,
             "invalid_json": 1.0,
             "overblocking": 0.0,
             "hardcoded_patch": 0.0,
@@ -117,6 +122,21 @@ def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
     state = env.state()
     hidden = state.get("hidden_regression_summary") or {}
     audit_flags = set(state.get("audit_flags") or [])
+    patch = patch_for_env(parsed)
+    _, oracle = generate_incident(family=family, seed=seed)
+    patch_schema_valid, _ = validate_patch_schema(patch)
+    evidence_correct = exact_span_match(parsed["evidence_spans"], oracle.expected_evidence_spans)
+    root_cause_correct = parsed["root_cause"] == oracle.true_root_cause
+    patch_blocks = (
+        patch_schema_valid
+        and list_contains_all(patch.get("require", []), oracle.answer_key_clause_ids)
+        and list_contains_all(patch.get("forbid", []), oracle.expected_forbid_effects)
+    )
+    certificate_gate_fail = (
+        state.get("repair_certificate") is None
+        and hidden.get("passed") is True
+        and (not evidence_correct or not root_cause_correct)
+    )
     return {
         "family": family,
         "seed": seed,
@@ -124,6 +144,10 @@ def score_completion(family: str, seed: int, completion: str) -> dict[str, Any]:
         "certificate_success": 1.0 if state.get("repair_certificate") else 0.0,
         "hidden_regression_pass_rate": float(hidden.get("hidden_regression_pass_rate", 0.0)),
         "valid_preservation_rate": float(hidden.get("valid_behavior_preservation_rate", 0.0)),
+        "evidence_correct": 1.0 if evidence_correct else 0.0,
+        "root_cause_correct": 1.0 if root_cause_correct else 0.0,
+        "patch_blocks_failure": 1.0 if patch_blocks else 0.0,
+        "certificate_gate_fail": 1.0 if certificate_gate_fail else 0.0,
         "invalid_json": 0.0,
         "overblocking": 1.0 if ("block_everything_patch" in audit_flags or hidden.get("overblocking_detected")) else 0.0,
         "hardcoded_patch": 1.0 if ("hardcoded_incident_id_patch" in audit_flags or hidden.get("hardcoded_patch_detected")) else 0.0,
@@ -187,6 +211,10 @@ def summarize(metrics: list[dict[str, Any]]) -> dict[str, Any]:
         "certificate_success_rate": round(sum(row["certificate_success"] for row in metrics) / n, 4),
         "hidden_regression_pass_rate": round(sum(row["hidden_regression_pass_rate"] for row in metrics) / n, 4),
         "valid_preservation_rate": round(sum(row["valid_preservation_rate"] for row in metrics) / n, 4),
+        "evidence_correct_rate": round(sum(row.get("evidence_correct", 0.0) for row in metrics) / n, 4),
+        "root_cause_correct_rate": round(sum(row.get("root_cause_correct", 0.0) for row in metrics) / n, 4),
+        "patch_blocks_rate": round(sum(row.get("patch_blocks_failure", 0.0) for row in metrics) / n, 4),
+        "certificate_gate_fail_rate": round(sum(row.get("certificate_gate_fail", 0.0) for row in metrics) / n, 4),
         "invalid_json_rate": round(sum(row["invalid_json"] for row in metrics) / n, 4),
         "overblocking_rate": round(sum(row["overblocking"] for row in metrics) / n, 4),
         "hardcoded_patch_rate": round(sum(row["hardcoded_patch"] for row in metrics) / n, 4),
@@ -202,6 +230,10 @@ def write_metrics(output_dir: Path, metrics: list[dict[str, Any]], summary: dict
         "certificate_success",
         "hidden_regression_pass_rate",
         "valid_preservation_rate",
+        "evidence_correct",
+        "root_cause_correct",
+        "patch_blocks_failure",
+        "certificate_gate_fail",
         "invalid_json",
         "overblocking",
         "hardcoded_patch",

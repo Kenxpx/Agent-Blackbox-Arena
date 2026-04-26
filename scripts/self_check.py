@@ -267,7 +267,7 @@ def run_gate5_docs_and_space_checks() -> None:
         "not an observability dashboard",
         "failed trace -> replay -> evidence -> root cause -> patch -> regressions -> certificate",
         "Current table results are baseline and smoke results",
-        "final trained-model comparison claims will be added only after real plots and wider held-out evidence",
+        "Final trained-model comparison claims should use a fresh post-hardening HF evaluation",
         "TODO_ADD_HF_SPACE_LINK",
         "TODO_ADD_VIDEO_OR_BLOG_LINK",
     ]

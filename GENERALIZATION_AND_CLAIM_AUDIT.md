@@ -10,7 +10,90 @@ Result: **PASS**
 - Records checked across standard and challenge variants: `900`
 - Target JSON appears verbatim in eval prompts: `False`
 - Incident IDs usable for hardcoding in prompts: `False`
+- Candidate answer positions vary across challenge eval seeds: `True`
 - Family-specific labels: public metadata in standard OpenEnv prompts; blind-family challenge prompts are available to test dependence on that metadata.
+
+Candidate position audit:
+
+```json
+{
+  "missing_verification": {
+    "all_answers_first": false,
+    "forbid_positions": [
+      0,
+      1,
+      2
+    ],
+    "preserve_positions": [
+      0,
+      1,
+      2
+    ],
+    "require_positions": [
+      0,
+      1,
+      2
+    ],
+    "root_cause_positions": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "permission_scope": {
+    "all_answers_first": false,
+    "forbid_positions": [
+      0,
+      1,
+      2
+    ],
+    "preserve_positions": [
+      0,
+      1,
+      2
+    ],
+    "require_positions": [
+      0,
+      1,
+      2
+    ],
+    "root_cause_positions": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "stale_retrieval": {
+    "all_answers_first": false,
+    "forbid_positions": [
+      0,
+      1,
+      2
+    ],
+    "preserve_positions": [
+      0,
+      1,
+      2
+    ],
+    "require_positions": [
+      0,
+      1,
+      2
+    ],
+    "root_cause_positions": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+}
+```
 
 ## 2. Train/Eval Separation Result
 
@@ -22,22 +105,84 @@ Result: **PASS**
 
 ## 3. Larger Held-Out Eval Metrics
 
-Real 0.5B larger held-out model evaluation is **pending** until the next HF job is approved. The repo now includes `training/evaluate_checkpoint.py` to evaluate base, SFT, and SFT+GRPO checkpoints over seeds `1000-1049`.
+Post-hardening real 0.5B larger held-out model evaluation is **pending** until the next HF job is approved. A pre-hardening same-job 0.5B evaluation completed successfully, but final claims should use a fresh run because candidate-order shuffling and stricter certificate gating changed the evaluation surface. The repo includes `training/evaluate_checkpoint.py` to evaluate base, SFT, and SFT+GRPO checkpoints over seeds `1000-1049` or the budget-safe minimum range `1000-1019`.
 
 Local checkpoint availability:
 
 - `outputs/sft_qwen25_05b_json/model`: `False`
 - `outputs/grpo_tiny_hf/model`: `False`
 
-Because the trained checkpoints are not present locally, this audit did not run real model inference. The larger eval must run in an HF job or another runtime where the checkpoints are recreated or available.
+Because the trained checkpoints are not present locally, this audit did not run real model inference. The post-hardening larger eval must run in an HF job or another runtime where the checkpoints are recreated or available.
 
 Oracle verifier sanity over the same larger seed range:
 
 ```json
 {
+  "by_family": {
+    "missing_verification": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 50,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "permission_scope": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 50,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "stale_retrieval": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 50,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    }
+  },
+  "by_prompt_variant": {
+    "standard": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 150,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    }
+  },
+  "certificate_gate_fail_rate": 0.0,
   "certificate_success_rate": 1.0,
   "episodes": 150,
   "eval_seeds": "1000-1049",
+  "evidence_correct_rate": 1.0,
   "families": [
     "stale_retrieval",
     "missing_verification",
@@ -52,7 +197,9 @@ Oracle verifier sanity over the same larger seed range:
   "note": "CPU mock/oracle sanity check, not trained model evidence.",
   "overall_score": 1.0,
   "overblocking_rate": 0.0,
+  "patch_blocks_rate": 1.0,
   "prompt_variant": "standard",
+  "root_cause_correct_rate": 1.0,
   "valid_preservation_rate": 1.0
 }
 ```
@@ -69,9 +216,71 @@ Oracle sanity on challenge seeds `1000-1019`:
 
 ```json
 {
+  "by_family": {
+    "missing_verification": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "permission_scope": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "stale_retrieval": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    }
+  },
+  "by_prompt_variant": {
+    "shuffled_surface_blind": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 60,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    }
+  },
+  "certificate_gate_fail_rate": 0.0,
   "certificate_success_rate": 1.0,
   "episodes": 60,
   "eval_seeds": "1000-1019",
+  "evidence_correct_rate": 1.0,
   "families": [
     "stale_retrieval",
     "missing_verification",
@@ -86,7 +295,9 @@ Oracle sanity on challenge seeds `1000-1019`:
   "note": "CPU mock/oracle sanity check, not trained model evidence.",
   "overall_score": 1.0,
   "overblocking_rate": 0.0,
+  "patch_blocks_rate": 1.0,
   "prompt_variant": "shuffled_surface_blind",
+  "root_cause_correct_rate": 1.0,
   "valid_preservation_rate": 1.0
 }
 ```
@@ -134,7 +345,7 @@ hf jobs run \
 
 ## 8. GO / NO-GO For 1.5B
 
-Decision: **NO-GO until larger 0.5B held-out and challenge model evaluation are inspected.**
+Decision: **NO-GO until post-hardening 0.5B held-out and challenge model evaluation are inspected.**
 
 Reason: the existing 0.5B result is real and useful, but it is perfect on a small eval and saturated after SFT. Elite reviewers will expect a leakage/generalization check before scaling.
 

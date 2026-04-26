@@ -123,6 +123,10 @@ def run_mock_eval(eval_rows: list[dict[str, Any]], mode: str) -> tuple[list[dict
                 "certificate_success",
                 "hidden_regression_pass_rate",
                 "valid_preservation_rate",
+                "evidence_correct",
+                "root_cause_correct",
+                "patch_blocks_failure",
+                "certificate_gate_fail",
                 "invalid_json",
                 "overblocking",
                 "hardcoded_patch",
@@ -166,6 +170,10 @@ def run_model_eval(eval_rows: list[dict[str, Any]], args: argparse.Namespace) ->
                     "certificate_success",
                     "hidden_regression_pass_rate",
                     "valid_preservation_rate",
+                    "evidence_correct",
+                    "root_cause_correct",
+                    "patch_blocks_failure",
+                    "certificate_gate_fail",
                     "invalid_json",
                     "overblocking",
                     "hardcoded_patch",
@@ -190,6 +198,8 @@ def write_outputs(output_dir: Path, completions: list[dict[str, Any]], metrics: 
             handle.write(json.dumps(row, sort_keys=True) + "\n")
     write_csv(output_dir / "metrics.csv", metrics)
     summary = summarize(metrics)
+    families = sorted({str(row["family"]) for row in metrics})
+    variants = sorted({str(row.get("prompt_variant", "standard")) for row in metrics})
     summary.update(
         {
             "mode": "mock" if args.mock_policy else "model",
@@ -198,6 +208,11 @@ def write_outputs(output_dir: Path, completions: list[dict[str, Any]], metrics: 
             "eval_seeds": args.eval_seeds,
             "prompt_variant": args.prompt_variant,
             "families": list(IMPLEMENTED_FAMILIES),
+            "by_family": {family: summarize([row for row in metrics if str(row["family"]) == family]) for family in families},
+            "by_prompt_variant": {
+                variant: summarize([row for row in metrics if str(row.get("prompt_variant", "standard")) == variant])
+                for variant in variants
+            },
             "note": "Verifier-scored held-out model completions." if not args.mock_policy else "CPU mock/oracle sanity check, not trained model evidence.",
         }
     )

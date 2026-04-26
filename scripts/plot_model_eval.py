@@ -18,6 +18,10 @@ METRICS = {
     "hidden_regression_pass_rate": "hidden_regression_pass_rate.png",
     "invalid_json_rate": "invalid_json_rate.png",
     "valid_preservation_rate": "valid_preservation_rate.png",
+    "evidence_correct_rate": "evidence_correct_rate.png",
+    "root_cause_correct_rate": "root_cause_correct_rate.png",
+    "patch_blocks_rate": "patch_blocks_rate.png",
+    "certificate_gate_fail_rate": "certificate_gate_fail_rate.png",
 }
 COLORS = ["#4c78a8", "#59a14f", "#f28e2b", "#e15759", "#b07aa1"]
 
@@ -100,6 +104,9 @@ def main() -> int:
     args = build_arg_parser().parse_args()
     rows = load_summaries(args.summary)
     for metric, filename in METRICS.items():
+        if any(metric not in row for row in rows):
+            print(f"plot_model_eval: skipped {filename}; missing {metric} in one or more summaries")
+            continue
         draw_bar_plot(rows, metric, args.output_dir / filename)
         print(f"plot_model_eval: wrote {args.output_dir / filename}")
     return 0

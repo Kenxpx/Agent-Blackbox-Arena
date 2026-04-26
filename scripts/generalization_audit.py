@@ -10,7 +10,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from training.evaluate_checkpoint import run_mock_eval, write_outputs
-from training.make_dataset import CHALLENGE_VARIANTS, assert_prompt_has_no_hidden_answers, build_records, compact_json, parse_seed_spec
+from agent_blackbox.incidents import IMPLEMENTED_FAMILIES, generate_incident
+from training.make_dataset import (
+    CHALLENGE_VARIANTS,
+    assert_prompt_has_no_hidden_answers,
+    build_records,
+    compact_json,
+    ordered_candidates_for_prompt,
+    parse_seed_spec,
+)
 
 OUTPUT_DIR = ROOT / "outputs" / "generalization_audit"
 AUDIT_MD = ROOT / "GENERALIZATION_AND_CLAIM_AUDIT.md"
@@ -72,6 +80,32 @@ def run_leakage_audit() -> dict[str, Any]:
     eval_records = build_records("eval", sorted(eval_seeds), prompt_variant="standard")
     train_ids = {record["id"] for record in train_records}
     eval_ids = {record["id"] for record in eval_records}
+    candidate_position_audit: dict[str, dict[str, Any]] = {}
+    for family in IMPLEMENTED_FAMILIES:
+        _, oracle = generate_incident(family=family, seed=42)
+        root_positions: list[int] = []
+        require_positions: list[int] = []
+        forbid_positions: list[int] = []
+        preserve_positions: list[int] = []
+        for seed in sorted(eval_seeds):
+            candidates = ordered_candidates_for_prompt(family, seed, prompt_variant=CHALLENGE_VARIANT)
+            root_positions.append(candidates["root_cause"].index(oracle.true_root_cause))
+            require_positions.append(candidates["require"].index(oracle.answer_key_clause_ids[0]))
+            forbid_positions.append(candidates["forbid"].index(oracle.expected_forbid_effects[0]))
+            preserve_positions.append(candidates["preserve"].index(oracle.expected_preserve_clauses[0]))
+        candidate_position_audit[family] = {
+            "root_cause_positions": sorted(set(root_positions)),
+            "require_positions": sorted(set(require_positions)),
+            "forbid_positions": sorted(set(forbid_positions)),
+            "preserve_positions": sorted(set(preserve_positions)),
+            "all_answers_first": (
+                set(root_positions) == {0}
+                or set(require_positions) == {0}
+                or set(forbid_positions) == {0}
+                or set(preserve_positions) == {0}
+            ),
+        }
+    candidate_position_issue = any(item["all_answers_first"] for item in candidate_position_audit.values())
 
     family_label_note = (
         "Standard prompts expose the failure family because the OpenEnv state exposes family. "
@@ -81,7 +115,7 @@ def run_leakage_audit() -> dict[str, Any]:
     )
 
     return {
-        "status": "PASS" if not overlap and not issues else "FAIL",
+        "status": "PASS" if not overlap and not issues and not candidate_position_issue else "FAIL",
         "sft_train_seeds": sorted(sft_train),
         "grpo_train_seeds": sorted(grpo_train),
         "large_eval_seeds": [min(eval_seeds), max(eval_seeds)],
@@ -89,6 +123,7 @@ def run_leakage_audit() -> dict[str, Any]:
         "train_eval_record_id_overlap": sorted(train_ids & eval_ids),
         "records_checked_across_variants": checked_records,
         "prompt_target_leakage_issues": issues,
+        "candidate_position_audit": candidate_position_audit,
         "hidden_answer_leakage": "passed" if not issues else "failed",
         "family_label_note": family_label_note,
         "local_checkpoint_status": {
@@ -157,7 +192,14 @@ Result: **{leakage['status']}**
 - Records checked across standard and challenge variants: `{leakage['records_checked_across_variants']}`
 - Target JSON appears verbatim in eval prompts: `{bool(leakage['prompt_target_leakage_issues'])}`
 - Incident IDs usable for hardcoding in prompts: `False`
+- Candidate answer positions vary across challenge eval seeds: `{not any(item['all_answers_first'] for item in leakage['candidate_position_audit'].values())}`
 - Family-specific labels: public metadata in standard OpenEnv prompts; blind-family challenge prompts are available to test dependence on that metadata.
+
+Candidate position audit:
+
+```json
+{json.dumps(leakage['candidate_position_audit'], indent=2, sort_keys=True)}
+```
 
 ## 2. Train/Eval Separation Result
 
@@ -169,14 +211,14 @@ Result: **{leakage['status']}**
 
 ## 3. Larger Held-Out Eval Metrics
 
-Real 0.5B larger held-out model evaluation is **pending** until the next HF job is approved. The repo now includes `training/evaluate_checkpoint.py` to evaluate base, SFT, and SFT+GRPO checkpoints over seeds `{LARGE_EVAL_SEEDS}`.
+Post-hardening real 0.5B larger held-out model evaluation is **pending** until the next HF job is approved. A pre-hardening same-job 0.5B evaluation completed successfully, but final claims should use a fresh run because candidate-order shuffling and stricter certificate gating changed the evaluation surface. The repo includes `training/evaluate_checkpoint.py` to evaluate base, SFT, and SFT+GRPO checkpoints over seeds `{LARGE_EVAL_SEEDS}` or the budget-safe minimum range `1000-1019`.
 
 Local checkpoint availability:
 
 - `outputs/sft_qwen25_05b_json/model`: `{leakage['local_checkpoint_status']['sft_model_present']}`
 - `outputs/grpo_tiny_hf/model`: `{leakage['local_checkpoint_status']['grpo_model_present']}`
 
-Because the trained checkpoints are not present locally, this audit did not run real model inference. The larger eval must run in an HF job or another runtime where the checkpoints are recreated or available.
+Because the trained checkpoints are not present locally, this audit did not run real model inference. The post-hardening larger eval must run in an HF job or another runtime where the checkpoints are recreated or available.
 
 Oracle verifier sanity over the same larger seed range:
 
@@ -233,7 +275,7 @@ Exact next HF Jobs command, when approved:
 
 ## 8. GO / NO-GO For 1.5B
 
-Decision: **NO-GO until larger 0.5B held-out and challenge model evaluation are inspected.**
+Decision: **NO-GO until post-hardening 0.5B held-out and challenge model evaluation are inspected.**
 
 Reason: the existing 0.5B result is real and useful, but it is perfect on a small eval and saturated after SFT. Elite reviewers will expect a leakage/generalization check before scaling.
 

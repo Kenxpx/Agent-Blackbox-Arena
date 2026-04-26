@@ -2,7 +2,7 @@
 
 Gate 4/5 produced the training scaffold, and the first controlled 0.5B HF run has now validated the pipeline after an SFT format warmstart. The successful run proves that model loading, strict JSON output, deterministic verifier reward, sampled generation logging, held-out evaluation, checkpoint saving, and stop-loss reporting work. It does not by itself prove broad trained-model improvement, because the tiny GRPO phase was saturated after SFT warmup.
 
-The environment is the innovation. Training evidence is used to show that the replay -> repair -> regress -> certify loop gives a learnable reward signal.
+The environment is the innovation. Training evidence is used to show that the replay -> repair -> regress -> certify loop gives a learnable reward signal. The post-0.5B hardening pass now shuffles candidate answer order and tightens certificate gating, so any final trained claim should come from a fresh post-hardening evaluation.
 
 ## Budget Strategy
 
@@ -153,6 +153,7 @@ The preflight checks:
 
 - conversational prompt format for Qwen Instruct models
 - no hidden answers, hidden variants, or incident IDs in training prompts
+- candidate answer positions vary across seeds and prompt variants
 - SFT target JSON parses and scores 1.0 with the deterministic verifier
 - the old failing config `--per-device-train-batch-size 1 --num-generations 2` is rejected locally
 - the corrected config `--per-device-train-batch-size 2 --num-generations 2` passes
@@ -181,6 +182,13 @@ If `stoploss_report.json` says `STOP`, do not run a bigger model. If it says `PA
 ## Generalization Gate Before 1.5B
 
 Because the 0.5B SFT+GRPO validation is perfect on a small eval, Run 2 is blocked until the larger held-out and challenge checks are inspected.
+
+After the hardening pass, the next 0.5B audit should be treated as the new evidence baseline because:
+
+- candidate root-cause and patch-label options are seed-shuffled
+- challenge prompts blind the family label, shuffle spans, and rewrite surface text
+- certificate success requires correct evidence, not only a patch that passes hidden regressions
+- summaries include `evidence_correct_rate`, `root_cause_correct_rate`, `patch_blocks_rate`, and `certificate_gate_fail_rate`
 
 CPU audit:
 

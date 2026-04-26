@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from agent_blackbox.models import EpisodeRuntime
+from agent_blackbox.verifier import exact_span_match
 
 
 BOUNDED_DISCLAIMER = (
@@ -19,6 +20,7 @@ def can_generate_certificate(episode: EpisodeRuntime) -> bool:
         and hidden.get("passed") is True
         and episode.submitted_patch is not None
         and episode.submitted_root_cause == episode.hidden_oracle.true_root_cause
+        and exact_span_match(episode.selected_evidence_spans, episode.hidden_oracle.expected_evidence_spans)
     )
 
 

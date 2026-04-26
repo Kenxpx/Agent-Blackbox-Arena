@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import random
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -97,6 +99,53 @@ def compact_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
+def stable_shuffle(items: list[str], *, family: str, seed: int, prompt_variant: str, field: str) -> list[str]:
+    """Deterministically permute public candidates so order cannot become a label shortcut."""
+    shuffled = list(items)
+    digest = hashlib.sha256(f"{family}:{seed}:{prompt_variant}:{field}".encode("utf-8")).digest()
+    random.Random(int.from_bytes(digest[:8], "big")).shuffle(shuffled)
+    if len(shuffled) > 1 and shuffled == list(items):
+        offset = 1 + (int.from_bytes(digest[8:10], "big") % (len(shuffled) - 1))
+        shuffled = shuffled[offset:] + shuffled[:offset]
+    return shuffled
+
+
+def ordered_candidates_for_prompt(family: str, seed: int, prompt_variant: str = "standard") -> dict[str, list[str]]:
+    prompt_variant = normalize_prompt_variant(prompt_variant)
+    incident, _ = generate_incident(family=family, seed=seed)
+    labels = candidate_labels_for_family(incident.family)
+    return {
+        "root_cause": stable_shuffle(
+            list(incident.candidate_root_causes),
+            family=incident.family,
+            seed=seed,
+            prompt_variant=prompt_variant,
+            field="root_cause",
+        ),
+        "require": stable_shuffle(
+            labels["require"],
+            family=incident.family,
+            seed=seed,
+            prompt_variant=prompt_variant,
+            field="require",
+        ),
+        "forbid": stable_shuffle(
+            labels["forbid"],
+            family=incident.family,
+            seed=seed,
+            prompt_variant=prompt_variant,
+            field="forbid",
+        ),
+        "preserve": stable_shuffle(
+            labels["preserve"],
+            family=incident.family,
+            seed=seed,
+            prompt_variant=prompt_variant,
+            field="preserve",
+        ),
+    }
+
+
 def surface_rewrite(text: str) -> str:
     replacements = [
         ("User", "Requester"),
@@ -158,7 +207,7 @@ def glossary_for(labels: dict[str, list[str]]) -> dict[str, str]:
 def prompt_text_for_incident(family: str, seed: int, prompt_variant: str = "standard") -> str:
     prompt_variant = normalize_prompt_variant(prompt_variant)
     incident, _ = generate_incident(family=family, seed=seed)
-    labels = candidate_labels_for_family(incident.family)
+    candidates = ordered_candidates_for_prompt(incident.family, seed, prompt_variant=prompt_variant)
     public_spans = incident.public_trace()
     if variant_has(prompt_variant, "shuffle"):
         public_spans = sorted(public_spans, key=lambda span: (span["span_id"] in {"s2", "s4"}, span["span_id"]), reverse=True)
@@ -180,11 +229,11 @@ trace:
 {chr(10).join(trace_lines)}
 
 Choose only from these candidates:
-root_cause: {compact_json(incident.candidate_root_causes)}
-require: {compact_json(labels["require"])}
-forbid: {compact_json(labels["forbid"])}
-preserve: {compact_json(labels["preserve"])}
-label_glossary: {compact_json(glossary_for(labels))}
+root_cause: {compact_json(candidates["root_cause"])}
+require: {compact_json(candidates["require"])}
+forbid: {compact_json(candidates["forbid"])}
+preserve: {compact_json(candidates["preserve"])}
+label_glossary: {compact_json(glossary_for({key: candidates[key] for key in ["require", "forbid", "preserve"]}))}
 
 Output requirements:
 - evidence_spans: trace span IDs only

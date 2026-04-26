@@ -52,3 +52,23 @@ def test_certificate_has_bounded_disclaimer_after_verifier(family):
     assert certificate["valid_behavior_preservation_rate"] == 1.0
     assert certificate["recommendation"] == "redeploy_with_patch_under_bounded_coverage"
     assert "not a global safety proof" in certificate["bounded_disclaimer"]
+
+
+@pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)
+def test_certificate_requires_correct_evidence_not_only_patch_success(family):
+    spec = family_spec(family)
+    env = AgentBlackBoxEnvironment()
+    env.reset(seed=42, family=family)
+    env.step("inspect_trace")
+    env.step("replay_incident")
+    env.step({"action": "select_evidence_spans", "payload": {"evidence_spans": ["s1", "s4"]}})
+    env.step({"action": "submit_root_cause", "payload": {"root_cause": spec["root_cause"]}})
+    env.step({"action": "propose_repair_patch", "payload": {"patch": spec["patch"]}})
+    env.step("run_visible_replay")
+    hidden_obs = env.step("run_hidden_regressions")["observation"]
+    obs = env.step("generate_repair_certificate")["observation"]
+
+    assert hidden_obs["hidden_regression_summary"]["passed"] is True
+    assert obs["repair_certificate"] is None
+    assert obs["score_channels"]["evidence_spans_correct"] == 0.0
+    assert "certificate_before_verifier" in obs["audit_flags"]

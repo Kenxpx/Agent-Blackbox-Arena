@@ -5,6 +5,7 @@ import pytest
 from agent_blackbox.incidents import IMPLEMENTED_FAMILIES, generate_incident
 from agent_blackbox.models import FORBIDDEN_PUBLIC_KEYS
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
+from training.make_dataset import ordered_candidates_for_prompt
 
 
 def family_spec(family):
@@ -90,3 +91,25 @@ def test_hidden_regression_summary_is_aggregate_only(family):
     encoded = json.dumps(summary, sort_keys=True)
     for variant_id in spec["hidden_variant_ids"]:
         assert variant_id not in encoded
+
+
+@pytest.mark.parametrize("family", IMPLEMENTED_FAMILIES)
+def test_training_prompt_candidate_order_is_not_answer_position_shortcut(family):
+    _, oracle = generate_incident(family=family, seed=42)
+    root_positions = []
+    forbid_positions = []
+    preserve_positions = []
+    require_first_clause_positions = []
+
+    for seed in range(1000, 1020):
+        candidates = ordered_candidates_for_prompt(family, seed, prompt_variant="shuffled_surface_blind")
+        root_positions.append(candidates["root_cause"].index(oracle.true_root_cause))
+        forbid_positions.append(candidates["forbid"].index(oracle.expected_forbid_effects[0]))
+        preserve_positions.append(candidates["preserve"].index(oracle.expected_preserve_clauses[0]))
+        require_first_clause_positions.append(candidates["require"].index(oracle.answer_key_clause_ids[0]))
+
+    assert len(set(root_positions)) > 1
+    assert len(set(forbid_positions)) > 1
+    assert len(set(preserve_positions)) > 1
+    assert len(set(require_first_clause_positions)) > 1
+    assert not all(position == 0 for position in root_positions)
