@@ -1,10 +1,10 @@
 # Final Safe Baseline
 
-This file records the current submission-safe fallback before append-only larger-model stretch runs.
+This file records the submission-safe historical fallback that was preserved before append-only larger-model stretch runs.
 
 ## Current Safe Result
 
-Final selected trained evidence: **0.5B challenge-curriculum SFT**.
+Historical fallback trained evidence: **0.5B challenge-curriculum SFT**.
 
 Model family: `Qwen/Qwen2.5-0.5B-Instruct`.
 
@@ -28,14 +28,14 @@ Working Hugging Face Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-
 
 Evidence package status:
 
-- Current final evidence is the real 0.5B challenge-curriculum SFT result.
+- Historical fallback evidence is the real 0.5B challenge-curriculum SFT result.
 - Extracted HF evidence is tracked under `outputs/model_eval/extracted_hf/hf_05b_challenge_curriculum/`.
-- Final real plots are tracked under `outputs/final_plots/`.
+- Historical fallback plots are tracked under `outputs/final_plots/`.
 - Notebook/rerun guide is preserved at `notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb`.
-- No 1.5B, 3B, 4B, or H200 result is claimed as final evidence.
+- The final selected model is now Qwen3-4B H200 SFT+GRPO, job `69edcef7d70108f37acdfeb3`; this 0.5B file remains the fallback record.
 
 ## Larger-Model Stretch Policy
 
-Larger-model runs are append-only experiments. Their outputs must go under `outputs/larger_models/` and must not overwrite the current 0.5B evidence, final plots, notebook, or Hugging Face Space UI.
+Larger-model runs are append-only experiments. Their outputs must go under `outputs/larger_models/` and must not overwrite the 0.5B fallback evidence, historical plots, notebook, or Hugging Face Space UI.
 
-If larger-model runs fail, stop by quality gate, or do not produce real verifier-scored improvements, the 0.5B challenge-curriculum SFT result remains the fallback final submission result.
+If the final Qwen3-4B evidence cannot be used administratively, the 0.5B challenge-curriculum SFT result remains the historical fallback.

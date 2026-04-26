@@ -16,6 +16,14 @@ Agent BlackBox Arena is an OpenEnv-style training environment for Agent Reliabil
 
 The environment is the core innovation. Training evidence is used to prove that the environment teaches repair behavior; it is not the main novelty by itself.
 
+## Public Submission Links
+
+- HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
+- Training notebook: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb
+- Blog post: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/BLOG.md
+- Final form checklist: [`FINAL_FORM_SUBMISSION_CHECKLIST.md`](FINAL_FORM_SUBMISSION_CHECKLIST.md)
+- Evidence package: generated locally as `submission_evidence.zip` by `python scripts/package_submission_evidence.py`
+
 ## Not A Dashboard
 
 This is not an observability dashboard. Tracing tools show model calls, tool calls, handoffs, guardrails, and events. Agent BlackBox targets the next capability gap: after a trace shows an agent failed, what exact control should be repaired, and can that repair survive hidden regression variants?
@@ -148,18 +156,47 @@ The latest CPU audit also reports `evidence_correct_rate`, `root_cause_correct_r
 
 Post-hardening 0.5B result: the first stricter challenge run completed, but it was **not** a final trained-model win. Standard SFT improved strict JSON and standard repair behavior, while `shuffled_surface_blind` and `combined_blind_shuffle` exposed an evidence-grounding failure: evidence correctness and certificate success dropped to zero on challenge variants.
 
-Final selected trained evidence: a 0.5B challenge-curriculum SFT run recovered nonzero challenge evidence grounding without invalid JSON, hardcoded patches, or challenge overblocking. It is a bounded result, not a broad safety claim:
+The strongest completed training result is **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200** from HF Job `69edcef7d70108f37acdfeb3`. The numbers below are reported for the synthetic MVP families and eval seeds `1000-1019`; they should not be read as a global safety or SOTA claim:
 
 | Model / eval | Overall | Certificate | Evidence | Hidden pass | Valid preserve | Invalid JSON | Overblocking |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Base 0.5B standard | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 1.0000 | 0.0000 |
-| 0.5B SFT standard | 0.9492 | 0.9333 | 1.0000 | 0.9667 | 0.9333 | 0.0000 | 0.0500 |
-| 0.5B SFT shuffled_surface_blind | 0.6710 | 0.1833 | 0.1833 | 0.9750 | 0.9833 | 0.0000 | 0.0000 |
-| 0.5B SFT combined_blind_shuffle | 0.6753 | 0.2167 | 0.2167 | 0.9750 | 1.0000 | 0.0000 | 0.0000 |
+| Qwen3-4B SFT+GRPO standard | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0.0000 |
+| Qwen3-4B SFT+GRPO shuffled_surface_blind | 0.9557 | 0.8833 | 0.8833 | 1.0000 | 1.0000 | 0.0000 | 0.0000 |
+| Qwen3-4B SFT+GRPO combined_blind_shuffle | 0.9367 | 0.8333 | 0.8333 | 1.0000 | 1.0000 | 0.0000 | 0.0000 |
 
-The 1.5B run was attempted and canceled by stop-loss after SFT reported `quality_status=STOP`; no 1.5B or 4B result is claimed.
+The selected run also reported `hardcoded_patch_rate=0.0000` and GRPO stoploss `PASS`. The output root is `outputs/larger_models/qwen3_4b_2507_final_h200/`.
 
-Experimental tracking is enabled through CSV/JSON logs plus TensorBoard-compatible artifacts under `outputs/tracking/`. Real loss/reward plots are generated only from those training logs and verifier-scored metrics.
+I kept the earlier runs in the audit trail because they explain the final path. The 0.5B challenge-curriculum SFT remains the historical fallback baseline; the 1.5B run was canceled by stop-loss and is not claimed; Qwen2.5-3B stretch attempts failed or were STOP-gated and are not claimed.
+
+Experimental tracking is enabled through CSV/JSON logs plus TensorBoard-compatible artifacts. The final Qwen3-4B tracking roots are `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/sft_warmstart_sft_qwen3_4b_2507_final_h200_challenge_curriculum/` and `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/grpo_grpo_qwen3_4b_2507_final_h200_challenge_curriculum/`. Real loss/reward plots are generated only from those training logs and verifier-scored metrics.
+
+## Final Results
+
+Selected model: **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200**. HF Job: `69edcef7d70108f37acdfeb3`. The result is scoped to the reported synthetic MVP families, challenge variants, and eval seeds `1000-1019`.
+
+Final assets:
+
+- Final assets folder: [`docs/final_assets/`](docs/final_assets/)
+- Metrics JSON: `docs/final_assets/metrics/final_qwen3_4b_metrics.json`
+- Metrics CSV: `docs/final_assets/tables/final_qwen3_4b_metrics.csv`
+- Metrics table: `docs/final_assets/tables/final_qwen3_4b_metrics.md`
+- Evidence ledger: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md)
+- Final audit: [`FINAL_SUBMISSION_AUDIT.md`](FINAL_SUBMISSION_AUDIT.md)
+- Training notebook: [`notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb`](notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb)
+- Blog writeup: [`BLOG.md`](BLOG.md)
+- HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
+
+![Qwen3-4B overall score](docs/final_assets/plots/qwen3_4b_eval_overall.png)
+
+![Qwen3-4B certificate success](docs/final_assets/plots/qwen3_4b_certificate_success.png)
+
+![Qwen3-4B evidence correctness](docs/final_assets/plots/qwen3_4b_evidence_correctness.png)
+
+![Qwen3-4B safety rates](docs/final_assets/plots/qwen3_4b_safety_rates.png)
+
+![Qwen3-4B SFT loss summary](docs/final_assets/plots/qwen3_4b_sft_loss.png)
+
+![Qwen3-4B GRPO reward curve](docs/final_assets/plots/qwen3_4b_grpo_reward.png)
 
 Run the audit:
 
@@ -167,7 +204,7 @@ Run the audit:
 python scripts/generalization_audit.py
 ```
 
-Run future checkpoint evals:
+Example checkpoint eval commands for reproducing earlier comparisons:
 
 ```bash
 python training/evaluate_checkpoint.py \
@@ -189,11 +226,11 @@ python training/evaluate_checkpoint.py \
   --output-dir outputs/model_eval/sft_grpo_0_5b_standard
 ```
 
-Challenge eval swaps `--prompt-variant shuffled_surface_blind`.
+Challenge evals can add `--prompt-variant shuffled_surface_blind` or `--prompt-variant combined_blind_shuffle`.
 
 ## Baseline Results
 
-Current table results are baseline and smoke results. A controlled 0.5B HF run validated the strict JSON training pipeline after SFT warmup, but the benchmark has since been hardened against candidate-order shortcuts and loose certificate success. Final trained-model comparison claims should use a fresh post-hardening HF evaluation.
+These baseline rows are deterministic policy comparisons, separate from the final Qwen3-4B training result above. They show that the verifier rewards useful repair behavior and penalizes brittle policies such as block-everything or visible overfit.
 
 These baseline results are generated from `outputs/results.csv` over 5 baselines x 3 families x 10 deterministic seeds.
 
@@ -299,9 +336,9 @@ python scripts/package_submission_evidence.py
 
 This writes `submission_evidence/` and `submission_evidence.zip` with a `MANIFEST.json`. The packager skips missing optional files, model weight folders, cache folders, token-like files, and secrets. No notebook was used unless a real `notebooks/*.ipynb` file exists.
 
-## Future Real GRPO Command
+## Training Script Reference
 
-Use only after all smoke checks are green and GPU budget is approved:
+The selected final run is already complete, so do not start more training for submission. The commands below are retained as runnable references for the guarded TRL/GRPO training path:
 
 ```bash
 pip install -e ".[training]"
@@ -347,7 +384,7 @@ Then use `--model outputs/sft_qwen25_05b_json/model` for the next tiny GRPO run 
 
 HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
 
-The Space now opens to a judge-facing research demo UI, not raw API JSON. It is organized around a fast audit path: sticky judge shortcuts, focused hero, quick proof strip, live benchmark console, benchmark identity, failure genome, verifier-scored results, experimental plots, testing options, trust/audit discipline, and compact resources.
+The Space opens to a research demo UI instead of raw API JSON. It gives reviewers a short path through the live demo, benchmark identity, failure genome, verifier-scored results, experimental plots, API tests, and supporting resources.
 
 Space routes:
 
@@ -360,10 +397,14 @@ Space routes:
 - no GPU required for environment evaluation
 - no live external APIs required
 
-The Space UI includes the real training plots:
+The Space UI headline result is the final Qwen3-4B H200 SFT+GRPO run. Final H200 plot paths from the training output root are:
 
-- `outputs/final_plots/hf_05b_challenge_curriculum_training_loss_curve.png`
-- `outputs/final_plots/hf_05b_challenge_curriculum_verifier_reward_comparison.png`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_training/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_training/`
+
+The Space repository also keeps historical 0.5B plot files under `outputs/final_plots/` for the iteration story.
 
 Notebook/rerun guide:
 
@@ -375,12 +416,14 @@ Evidence package:
 python scripts/package_submission_evidence.py
 ```
 
-Final bounded result:
+Final result:
 
-- final selected trained evidence: 0.5B challenge-curriculum SFT
+- selected trained evidence: Qwen3-4B final H200 SFT+GRPO, HF Job `69edcef7d70108f37acdfeb3`
+- 0.5B challenge-curriculum SFT is historical fallback/baseline evidence
 - no 1.5B final result is claimed
-- no 4B result is claimed
-- video/blog link: `TODO_ADD_VIDEO_OR_BLOG_LINK`
+- no Qwen2.5-3B final result is claimed
+- blog link: [`BLOG.md`](BLOG.md)
+- video/slides: optional external artifact, only needed if the submission form asks for one
 
 The live demo controls call the backend FastAPI environment directly, so judges can test the same reset/step/state loop used by the OpenEnv-style API.
 
@@ -392,14 +435,19 @@ Agent BlackBox Arena uses synthetic symbolic traces only. It has no real credent
 
 The Agent Repair Certificate is bounded to the generated finite incident family, visible trace, hidden regression variants, and verification horizon. It is not a global safety proof.
 
-## Links To Add Before Final Submission
+## Submission Links
 
 - Hugging Face Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
-- Video/blog/slides: `TODO_ADD_VIDEO_OR_BLOG_LINK`
+- Training notebook: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb
+- Blog: https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/BLOG.md
+- Final form checklist: [`FINAL_FORM_SUBMISSION_CHECKLIST.md`](FINAL_FORM_SUBMISSION_CHECKLIST.md)
+- Video/slides: optional external artifact, only needed if the submission form asks for one
 - Real training plots:
-  - `outputs/final_plots/hf_05b_challenge_curriculum_training_loss_curve.png`
-  - `outputs/final_plots/hf_05b_challenge_curriculum_verifier_reward_comparison.png`
+  - `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_model_eval/`
+  - `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_training/`
+  - `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_model_eval/`
+  - `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_training/`
 
-## No Fake Results
+## Claim Scope
 
-This repo does not claim broad trained model improvement. Current public tables are baseline evidence plus real HF Jobs evidence recorded in `TRAINING_RUN_LOG.md` and extracted into `outputs/model_eval/extracted_hf/`. The trained evidence is bounded to the reported seeds and challenge variants.
+The trained-model claim is intentionally narrow. The public tables combine baseline evidence with real HF Jobs evidence recorded in `TRAINING_RUN_LOG.md`, `SUBMISSION_EVIDENCE.md`, and `FINAL_RECENT_H200_RUNS_REPORT.md`. The selected result is limited to the reported synthetic MVP families, eval seeds `1000-1019`, and challenge variants.

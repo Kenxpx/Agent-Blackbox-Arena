@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "model": "Qwen/Qwen3-4B-Instruct-2507",
+    "checkpoint": "SFT+GRPO final H200",
+    "hf_job": "69edcef7d70108f37acdfeb3",
+    "eval_seeds": "1000-1019",
+    "stoploss": "PASS",
+    "note": "Metrics are bounded to the synthetic MVP families and reported prompt variants."
+  },
+  "variants": [
+    {
+      "variant": "standard",
+      "overall_score": 1.0,
+      "certificate_success_rate": 1.0,
+      "evidence_correct_rate": 1.0,
+      "hidden_regression_pass_rate": 1.0,
+      "valid_preservation_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overblocking_rate": 0.0,
+      "hardcoded_patch_rate": 0.0
+    },
+    {
+      "variant": "shuffled_surface_blind",
+      "overall_score": 0.9557,
+      "certificate_success_rate": 0.8833,
+      "evidence_correct_rate": 0.8833,
+      "hidden_regression_pass_rate": 1.0,
+      "valid_preservation_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overblocking_rate": 0.0,
+      "hardcoded_patch_rate": 0.0
+    },
+    {
+      "variant": "combined_blind_shuffle",
+      "overall_score": 0.9367,
+      "certificate_success_rate": 0.8333,
+      "evidence_correct_rate": 0.8333,
+      "hidden_regression_pass_rate": 1.0,
+      "valid_preservation_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overblocking_rate": 0.0,
+      "hardcoded_patch_rate": 0.0
+    }
+  ]
+}

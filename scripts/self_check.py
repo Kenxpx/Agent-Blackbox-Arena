@@ -31,10 +31,12 @@ TRAINING_PREFLIGHT_REPORT = OUTPUT_DIR / "training_preflight_report.json"
 GENERALIZATION_AUDIT_REPORT = OUTPUT_DIR / "generalization_audit" / "leakage_audit.json"
 DOCS_REQUIRED = [
     ROOT / "README.md",
+    ROOT / "BLOG.md",
     ROOT / "BENCHMARK_SPEC.md",
     ROOT / "TRAINING.md",
     ROOT / "SAFETY.md",
-    ROOT / "SUBMISSION_READY.md",
+    ROOT / "FINAL_FORM_SUBMISSION_CHECKLIST.md",
+    ROOT / "docs" / "archive" / "SUBMISSION_READY.md",
     ROOT / "GENERALIZATION_AND_CLAIM_AUDIT.md",
     ROOT / "openenv.yaml",
     ROOT / "Dockerfile",
@@ -266,10 +268,14 @@ def run_gate5_docs_and_space_checks() -> None:
         "Replay. Repair. Regress. Certify.",
         "not an observability dashboard",
         "failed trace -> replay -> evidence -> root cause -> patch -> regressions -> certificate",
-        "Current table results are baseline and smoke results",
-        "Final trained-model comparison claims should use a fresh post-hardening HF evaluation",
+        "These baseline rows are deterministic policy comparisons",
+        "The strongest completed training result is **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200**",
         "https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena",
-        "TODO_ADD_VIDEO_OR_BLOG_LINK",
+        "https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb",
+        "https://github.com/Kenxpx/Agent-Blackbox-Arena/blob/main/BLOG.md",
+        "FINAL_FORM_SUBMISSION_CHECKLIST.md",
+        "BLOG.md",
+        "optional external artifact, only needed if the submission form asks for one",
     ]
     for term in required_readme_terms:
         assert term in readme, f"README missing required term: {term}"

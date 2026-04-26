@@ -4,13 +4,13 @@ Project: **Agent BlackBox Arena**
 Category: **Agent Reliability CI**  
 Tagline: **Replay. Repair. Regress. Certify.**
 
-This file records what happened during the final build, hardening, training, deployment, and evidence-packaging run. It is written for audit review. No fake metrics, fake plots, hidden failures, or unverified model claims are included.
+This log records the final build, hardening, training, deployment, and evidence-packaging run. It is written so the project can be checked without guessing which result is final.
 
 ## 1. Final Status
 
-Final technical status: **CONDITIONAL GO**, pending the external video/blog link required for submission.
+Final technical status: **CONDITIONAL GO**, with `BLOG.md` ready and pending any separate video/slides link if required by the submission form.
 
-The codebase, OpenEnv-style environment, deterministic verifier, training scripts, evidence package, notebook guide, and Hugging Face Space are ready. The final selected trained evidence is the **0.5B challenge-curriculum SFT result** from real Hugging Face Jobs logs. The 1.5B run was canceled by stop-loss and is not claimed. The 4B/H200 stretch was not run.
+The codebase, OpenEnv-style environment, deterministic verifier, training scripts, evidence package, notebook guide, and Hugging Face Space are ready. The selected trained result is **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200** from real Hugging Face Jobs logs, job `69edcef7d70108f37acdfeb3`. The 0.5B challenge-curriculum SFT result is retained as historical fallback evidence. The 1.5B and Qwen2.5-3B attempts are not claimed.
 
 ## 2. Project Identity
 
@@ -109,8 +109,13 @@ Note: local smoke outputs under `outputs/sft_smoke/` and `outputs/training_smoke
 | `69ed520cd2c8bd8662bcea54` | `t4-small` | CANCELED | Larger eval attempt canceled intentionally because it was too slow/quiet for the budget. |
 | `69ed549bd70108f37acdf273` | `t4-small` | COMPLETED | Pre-hardening larger 0.5B eval passed standard/challenge, but challenge was later judged too easy. |
 | `69ed986cd70108f37acdf8ba` | `t4-small` | COMPLETED | Post-hardening 0.5B run exposed challenge evidence-grounding failure. |
-| `69eda5a4d70108f37acdfa48` | `t4-small` | COMPLETED | Challenge-curriculum 0.5B run succeeded and became final selected trained evidence. |
+| `69eda5a4d70108f37acdfa48` | `t4-small` | COMPLETED | Challenge-curriculum 0.5B run succeeded and became historical fallback evidence. |
 | `69edaafcd70108f37acdfadb` | `l4x1` | CANCELED | 1.5B stopped after SFT quality gate printed `STOP`; no 1.5B result claimed. |
+| `69edc9b8d2c8bd8662bcf937` | `h200` | COMPLETED | Qwen2.5-3B completed but SFT gate stopped; no 3B result claimed. |
+| `69edcb91d70108f37acdfe5a` | `h200` | COMPLETED | Qwen2.5-3B r2 completed but SFT gate stopped; no 3B result claimed. |
+| `69edc9c3d2c8bd8662bcf93c` | `h200` | ERROR | Qwen3-4B intermediate errored during GRPO evaluation; not final. |
+| `69edcb9ad70108f37acdfe5e` | `h200` | COMPLETED | Qwen3-4B fast r2 passed but was weaker than final. |
+| `69edcef7d70108f37acdfeb3` | `h200` | COMPLETED | Final selected Qwen3-4B SFT+GRPO result. |
 
 ## 7. Failed And Canceled Runs Were Kept
 
@@ -120,6 +125,8 @@ The failed and canceled runs are part of the audit story:
 - The next 0.5B GRPO-only attempt failed due invalid JSON collapse.
 - A later post-hardening run exposed evidence-grounding failure under challenge prompts.
 - The 1.5B attempt was canceled when quality gate signaled `STOP`.
+- Qwen2.5-3B H200 attempts failed or were STOP-gated and are not claimed.
+- Intermediate Qwen3-4B H200 attempts are recorded but only job `69edcef7d70108f37acdfeb3` is selected.
 
 These runs are not hidden and are not used as positive claims. They drove the curriculum, prompt, and stop-loss improvements.
 
@@ -169,73 +176,55 @@ The fix did not loosen the verifier or certificate gate. It improved training cu
 
 ## 10. Final Selected Training Evidence
 
-Final selected trained evidence comes from HF job:
+The selected trained evidence comes from HF job:
 
 ```text
-69eda5a4d70108f37acdfa48
+69edcef7d70108f37acdfeb3
 ```
 
 Status:
 
 - Job status: COMPLETED
-- Marker: `POST_CHALLENGE_CURRICULUM_0_5B_COMPLETE`
-- Model: `Qwen/Qwen2.5-0.5B-Instruct`
-- Stage selected: 0.5B challenge-curriculum SFT
-- Hardware: `t4-small`
-- Real extracted evidence path: `outputs/model_eval/extracted_hf/hf_05b_challenge_curriculum/`
+- Marker: `POST_FINAL_QWEN3_4B_H200_COMPLETE`
+- Model: `Qwen/Qwen3-4B-Instruct-2507`
+- Stage selected: SFT+GRPO final H200
+- Hardware: `h200`
+- Output root: `outputs/larger_models/qwen3_4b_2507_final_h200/`
+- Log file: `logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt`
 
-### Base 0.5B Standard
-
-```text
-overall_score = 0.0
-certificate_success_rate = 0.0
-evidence_correct_rate = 0.0
-hidden_regression_pass_rate = 0.0
-valid_preservation_rate = 0.0
-invalid_json_rate = 1.0
-overblocking_rate = 0.0
-hardcoded_patch_rate = 0.0
-```
-
-### 0.5B Challenge-Curriculum SFT Standard
+### Qwen3-4B Final Standard
 
 ```text
-overall_score = 0.9492
-certificate_success_rate = 0.9333
+overall_score = 1.0000
+certificate_success_rate = 1.0000
 evidence_correct_rate = 1.0
-root_cause_correct_rate = 1.0
-patch_blocks_rate = 1.0
-hidden_regression_pass_rate = 0.9667
-valid_preservation_rate = 0.9333
-invalid_json_rate = 0.0
-overblocking_rate = 0.05
-hardcoded_patch_rate = 0.0
-```
-
-### 0.5B Challenge-Curriculum SFT Shuffled Surface Blind
-
-```text
-overall_score = 0.6710
-certificate_success_rate = 0.1833
-evidence_correct_rate = 0.1833
-root_cause_correct_rate = 0.9833
-patch_blocks_rate = 0.9667
-hidden_regression_pass_rate = 0.975
-valid_preservation_rate = 0.9833
+hidden_regression_pass_rate = 1.0
+valid_preservation_rate = 1.0
 invalid_json_rate = 0.0
 overblocking_rate = 0.0
 hardcoded_patch_rate = 0.0
 ```
 
-### 0.5B Challenge-Curriculum SFT Combined Blind Shuffle
+### Qwen3-4B Final Shuffled Surface Blind
 
 ```text
-overall_score = 0.6753
-certificate_success_rate = 0.2167
-evidence_correct_rate = 0.2167
-root_cause_correct_rate = 0.95
-patch_blocks_rate = 0.95
-hidden_regression_pass_rate = 0.975
+overall_score = 0.9557
+certificate_success_rate = 0.8833
+evidence_correct_rate = 0.8833
+hidden_regression_pass_rate = 1.0
+valid_preservation_rate = 1.0
+invalid_json_rate = 0.0
+overblocking_rate = 0.0
+hardcoded_patch_rate = 0.0
+```
+
+### Qwen3-4B Final Combined Blind Shuffle
+
+```text
+overall_score = 0.9367
+certificate_success_rate = 0.8333
+evidence_correct_rate = 0.8333
+hidden_regression_pass_rate = 1.0
 valid_preservation_rate = 1.0
 invalid_json_rate = 0.0
 overblocking_rate = 0.0
@@ -244,11 +233,10 @@ hardcoded_patch_rate = 0.0
 
 Interpretation:
 
-- Base 0.5B collapsed into invalid JSON.
-- SFT fixed strict repair-plan generation.
-- Challenge curriculum recovered nonzero evidence and certificate success on both challenge variants.
-- Challenge metrics are not perfect and should be reported as bounded evidence, not broad safety.
-- GRPO was not used as the final improvement claim because earlier GRPO stages were saturated or failed stop-loss.
+- Qwen3-4B final H200 SFT+GRPO is the selected final model.
+- It beats the 0.5B historical fallback on challenge evidence and certificate rates.
+- Invalid JSON, overblocking, and hardcoded patch rates are all `0.0`.
+- The claim is limited to synthetic MVP families, prompt variants, and eval seeds `1000-1019`.
 
 ## 11. 1.5B Attempt And Stop-Loss
 
@@ -268,8 +256,8 @@ Status:
 Decision:
 
 - **NO-GO** for 1.5B headline result.
-- **NO-GO** for 4B or H200.
 - No 1.5B metric is claimed as a final result.
+- The later Qwen3-4B H200 final run superseded the 0.5B fallback with real verifier-scored evidence.
 
 ## 12. Real Plots And Tracking Artifacts
 
@@ -279,16 +267,19 @@ Real plots generated from extracted HF logs:
 - `outputs/final_plots/hf_05b_challenge_curriculum_verifier_reward_comparison.png`
 - `outputs/final_plots/hf_15b_challenge_curriculum_canceled_training_loss_curve.png`
 
-Primary final plots for claims:
+Primary final H200 plot paths for claims:
 
-- Use `hf_05b_challenge_curriculum_training_loss_curve.png`
-- Use `hf_05b_challenge_curriculum_verifier_reward_comparison.png`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_training/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_training/`
 
-TensorBoard-compatible extracted tracking artifacts:
+TensorBoard-compatible tracking artifacts:
 
-- `outputs/tracking/hf_extracted_05b_extracted_hf_05b_challenge_curriculum/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/sft_warmstart_sft_qwen3_4b_2507_final_h200_challenge_curriculum/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/grpo_grpo_qwen3_4b_2507_final_h200_challenge_curriculum/`
 
-CSV/JSON logs remain the source of truth.
+CSV/JSON logs remain the underlying record.
 
 ## 13. Hugging Face Space
 
@@ -328,7 +319,7 @@ Latest observed output:
 ```text
 package_submission_evidence: wrote submission_evidence/
 package_submission_evidence: wrote submission_evidence.zip
-package_submission_evidence: included=44 missing=14 skipped=0
+package_submission_evidence: included=97 missing=18 skipped=0
 ```
 
 Evidence package:
@@ -368,19 +359,22 @@ Safe claims:
 - Base 0.5B failed strict JSON on the reported standard evaluation.
 - Challenge-curriculum SFT fixed JSON validity on the reported evaluation.
 - Challenge-curriculum SFT recovered nonzero challenge evidence/certificate success after a failure case exposed by stricter evaluation.
+- Qwen3-4B final H200 SFT+GRPO is the selected final trained model over eval seeds `1000-1019`.
 - Hidden regression and valid-preservation metrics are deterministic verifier metrics.
 - The repair certificate is bounded to this symbolic benchmark.
 
-## 17. Unsafe Claims
+## 17. Not Claimed
 
-Do not claim:
+The submission does not claim:
 
 - SOTA.
 - Production safety.
 - Global safety proof.
 - Unlimited generalization.
 - GRPO learned the task from scratch.
-- 1.5B, 4B, or H200 success.
+- 1.5B success.
+- Qwen2.5-3B success.
+- Failed/error H200 runs as successful.
 - Final trained improvement from the canceled 1.5B run.
 - Any metric not present in the real logs.
 
@@ -388,10 +382,10 @@ Do not claim:
 
 Still required before final administrative submission:
 
-1. Create or publish an under-2-minute video, blog, or slide link.
+1. Add a video/slides URL if the submission form requires one beyond `BLOG.md`.
 2. Add that link to `README.md`.
-3. Regenerate `submission_evidence.zip` after adding the link.
-4. Team leader submits the final repository, HF Space, evidence package, and video/blog/slides link.
+3. Regenerate `submission_evidence.zip` after adding any external link.
+4. Team leader submits the final repository, HF Space, evidence package, and blog/video/slides link.
 
 ## 19. Final Decision
 
@@ -401,5 +395,5 @@ Final submission decision:
 CONDITIONAL GO
 ```
 
-The repo, environment, training evidence, Space, notebook guide, and audit trail are ready. The only remaining blocker is the external video/blog/slides URL required by the submission process.
+The repo, environment, training evidence, Space, notebook guide, `BLOG.md`, and audit trail are ready. The only remaining administrative blocker is a separate external video/slides URL if required by the submission process.
 

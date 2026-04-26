@@ -1,6 +1,6 @@
 # Training Run Log
 
-Current decision: **NO-GO for Run 2 until larger 0.5B held-out and challenge evaluation are inspected**.
+Current decision: **FINAL SELECTED MODEL is Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200**, HF Job `69edcef7d70108f37acdfeb3`. All training is stopped; no Qwen2.5-3B or failed/error run is claimed as a success.
 
 This log records real Hugging Face Jobs output. No fake metrics, fake plots, or trained-improvement claims are made.
 
@@ -157,7 +157,7 @@ Reason:
 
 ## Next Recommendation
 
-Do not run 1.5B or 4B yet.
+At this stage, I paused larger-model escalation and fixed the format problem first.
 
 Recommended next step is a CPU-only training-format fix:
 
@@ -357,12 +357,12 @@ GO for README claim:
 - "A verifier-scored 0.5B GRPO validation run produced strict JSON repair plans with `overall_score=1.0`, `certificate_success_rate=1.0`, `hidden_regression_pass_rate=1.0`, and `invalid_json_rate=0.0` on the reported held-out eval."
 - "GRPO did not add measurable improvement after SFT because reward was saturated."
 
-NO-GO for README claim:
+Claim boundary at this stage:
 
-- Do not claim GRPO alone solved the task from the base model.
-- Do not claim 1.5B or 4B results.
-- Do not claim broad generalization beyond the reported hidden-regression/eval seeds.
-- Do not hide the earlier failed 0.5B attempt.
+- GRPO alone had not solved the task from the base model.
+- No 1.5B or 4B result had been produced yet.
+- Generalization was still limited to the reported hidden-regression/eval seeds.
+- The earlier failed 0.5B attempt stayed in the record.
 
 ## Generalization And Leakage Audit Gate
 
@@ -607,7 +607,7 @@ Status: `COMPLETED`
 
 Marker: `POST_HARDENING_0_5B_COMPLETE`
 
-Decision: **NO-GO for 1.5B, NO-GO for 4B, NO-GO for final trained-model improvement claims.**
+Decision at the time: **NO-GO for 1.5B, NO-GO for 4B, NO-GO for final trained-model improvement claims.**
 
 Key result:
 
@@ -638,10 +638,10 @@ Patch after diagnosis:
 - Added `scripts/diagnose_challenge_failures.py`.
 - Added `scripts/hf_run_05b_challenge_curriculum.sh`.
 
-Next gate:
+Next gate at the time:
 
 - Run one 0.5B challenge-curriculum HF job.
-- Do not run 1.5B until challenge evidence correctness and certificate success improve without invalid JSON, overblocking, or hardcoding.
+- Hold 1.5B until challenge evidence correctness and certificate success improve without invalid JSON, overblocking, or hardcoding.
 
 ## Challenge-Curriculum 0.5B Result
 
@@ -703,3 +703,76 @@ Hardware decision:
 - T4-small remains the next appropriate machine for 0.5B curriculum validation.
 - L4/A10G is appropriate for 1.5B only after 0.5B challenge evidence recovers.
 - A100/H200 is not justified for prompt or curriculum debugging; it is reserved only for optional final stretch/ablation after smaller gates pass.
+
+## Final Larger-Model H200 Selection
+
+Status: `COMPLETED`
+
+Final selected run:
+
+- Job ID: `69edcef7d70108f37acdfeb3`
+- Model: `Qwen/Qwen3-4B-Instruct-2507`
+- Hardware: `H200`
+- Image: CUDA 12.8 PyTorch image path used after H200 CUDA preflight fixes
+- Output root: `outputs/larger_models/qwen3_4b_2507_final_h200/`
+- Selected checkpoint: `SFT+GRPO`
+- Eval seeds: `1000-1019`
+- Stoploss: `PASS`
+- Log file: `logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt`
+
+Final metrics:
+
+| Variant | Overall | Certificate | Evidence | Hidden pass | Valid preserve | Invalid JSON | Overblocking | Hardcoded patch |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `standard` | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
+| `shuffled_surface_blind` | 0.9557 | 0.8833 | 0.8833 | 1.0000 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
+| `combined_blind_shuffle` | 0.9367 | 0.8333 | 0.8333 | 1.0000 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
+
+GRPO stoploss report:
+
+```json
+{
+  "status": "PASS",
+  "overall_score": 0.9402,
+  "certificate_success_rate": 0.8625,
+  "evidence_correct_rate": 0.8625,
+  "invalid_json_rate": 0.0,
+  "overblocking_rate": 0.0,
+  "hardcoded_patch_rate": 0.0,
+  "warnings": []
+}
+```
+
+Final plot paths:
+
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_training/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_training/`
+
+Final tracking paths:
+
+- `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/sft_warmstart_sft_qwen3_4b_2507_final_h200_challenge_curriculum/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/grpo_grpo_qwen3_4b_2507_final_h200_challenge_curriculum/`
+
+Historical fallback:
+
+- The 0.5B challenge-curriculum SFT result remains a historical fallback/baseline only.
+- Its key challenge metrics were `shuffled_surface_blind` evidence/certificate `0.1833` and `combined_blind_shuffle` evidence/certificate `0.2167`.
+- The final Qwen3-4B run beats that fallback on both challenge evidence and certificate rates while keeping invalid JSON, overblocking, and hardcoded patches at `0.0000`.
+
+Failed and intermediate larger-model runs:
+
+| Job ID | Model | Status | Honest interpretation |
+|---|---|---|---|
+| `69edc89ed2c8bd8662bcf90c` | `Qwen/Qwen2.5-3B-Instruct` | `ERROR` | Fast r1 failed on H200 CUDA/BF16 initialization; not claimed. |
+| `69edc8a5d70108f37acdfe18` | `Qwen/Qwen3-4B-Instruct-2507` | `ERROR` | Fast r1 failed on H200 CUDA/BF16 initialization; not claimed. |
+| `69edc9b8d2c8bd8662bcf937` | `Qwen/Qwen2.5-3B-Instruct` | `COMPLETED` | SFT gate stopped; no 3B success claim. |
+| `69edcb91d70108f37acdfe5a` | `Qwen/Qwen2.5-3B-Instruct` | `COMPLETED` | SFT gate stopped again; no 3B success claim. |
+| `69edc9c3d2c8bd8662bcf93c` | `Qwen/Qwen3-4B-Instruct-2507` | `ERROR` | Useful SFT signal, but GRPO evaluation errored due adapter/base-model path issue; not final. |
+| `69edcb9ad70108f37acdfe5e` | `Qwen/Qwen3-4B-Instruct-2507` | `COMPLETED` | Intermediate fast r2 SFT+GRPO passed but was weaker than final. |
+
+Final claim boundary:
+
+- Allowed: Qwen3-4B final H200 SFT+GRPO improved reported verifier-scored metrics on the three synthetic MVP families over eval seeds `1000-1019`.
+- Forbidden: global safety, SOTA, production safety, 3B success, 1.5B success, GRPO-from-scratch claims, or generalization beyond reported synthetic families and prompt variants.

@@ -233,7 +233,7 @@ def write_audit_md(
 ) -> None:
     content = f"""# Generalization And Claim Audit
 
-This file is intentionally conservative. It separates real completed 0.5B evidence from pending larger held-out model evaluation so the submission does not overclaim.
+This file is intentionally conservative. It keeps leakage/generalization checks separate from final training claims so the submission does not overclaim. The selected final model is `Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200` from HF Job `69edcef7d70108f37acdfeb3`.
 
 ## 1. Leakage Audit Result
 
@@ -260,16 +260,24 @@ Candidate answer-position distribution:
 - Train/eval seed overlap: `{leakage['train_eval_seed_overlap']}`
 - Train/eval record ID overlap: `{leakage['train_eval_record_id_overlap']}`
 
-## 3. Larger Held-Out Eval Metrics
+## 3. Final Held-Out Eval Metrics
 
-Post-hardening real 0.5B larger held-out model evaluation is **pending** until the next HF job is approved. A pre-hardening same-job 0.5B evaluation completed successfully, but final claims should use a fresh run because candidate-order shuffling and stricter certificate gating changed the evaluation surface. The repo includes `training/evaluate_checkpoint.py` to evaluate base, SFT, and SFT+GRPO checkpoints over seeds `{LARGE_EVAL_SEEDS}` or the budget-safe minimum range `1000-1019`.
+The final selected Qwen3-4B H200 SFT+GRPO run completed verifier-scored evaluation over seeds `1000-1019`:
+
+| Variant | Overall | Certificate | Evidence | Hidden pass | Valid preserve | Invalid JSON |
+|---|---:|---:|---:|---:|---:|---:|
+| `standard` | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.0000 |
+| `shuffled_surface_blind` | 0.9557 | 0.8833 | 0.8833 | 1.0000 | 1.0000 | 0.0000 |
+| `combined_blind_shuffle` | 0.9367 | 0.8333 | 0.8333 | 1.0000 | 1.0000 | 0.0000 |
+
+Safety rates were `overblocking_rate=0.0000`, `hardcoded_patch_rate=0.0000`, and stoploss `PASS`. The local oracle checks below remain useful as verifier sanity checks, not as the final trained-model metric source.
 
 Local checkpoint availability:
 
 - `outputs/sft_qwen25_05b_json/model`: `{leakage['local_checkpoint_status']['sft_model_present']}`
 - `outputs/grpo_tiny_hf/model`: `{leakage['local_checkpoint_status']['grpo_model_present']}`
 
-Because the trained checkpoints are not present locally, this audit did not run real model inference. The post-hardening larger eval must run in an HF job or another runtime where the checkpoints are recreated or available.
+Because the final trained checkpoint is not stored in this repository, this CPU audit does not rerun Qwen3-4B inference locally. The final model evidence comes from the completed HF Job log and checked-in final metrics/assets.
 
 Oracle verifier sanity over the same larger seed range:
 
@@ -283,7 +291,7 @@ This oracle sanity check proves the verifier can score correct repair plans acro
 
 Challenge variants implemented: `{CHALLENGE_VARIANT}`, `{HARD_CHALLENGE_VARIANT}`
 
-`{CHALLENGE_VARIANT}` shuffles trace spans, rewrites surface wording, and blinds the family label as `agent_reliability_failure`. `{HARD_CHALLENGE_VARIANT}` also changes service/requester/capability names while preserving the same root-cause semantics. Real model challenge evaluation is pending.
+`{CHALLENGE_VARIANT}` shuffles trace spans, rewrites surface wording, and blinds the family label as `agent_reliability_failure`. `{HARD_CHALLENGE_VARIANT}` also changes service/requester/capability names while preserving the same root-cause semantics. The final Qwen3-4B run reports real model metrics for both challenge variants above.
 
 Oracle sanity on challenge seeds `1000-1019`:
 
@@ -299,19 +307,11 @@ Oracle sanity on `{HARD_CHALLENGE_VARIANT}` seeds `1000-1019`:
 
 ## 5. Plots Created
 
-No new trained-model plots were created in this audit because no new real model evaluation was run locally. Existing baseline plots remain valid. Future trained plots should be generated only after real `evaluate_checkpoint.py` outputs exist.
-
-Required future plots:
-
-- `outputs/model_eval/baseline_vs_trained_score.png`
-- `outputs/model_eval/certificate_success_rate.png`
-- `outputs/model_eval/hidden_regression_pass_rate.png`
-- `outputs/model_eval/invalid_json_rate.png`
-- `outputs/model_eval/valid_preservation_rate.png`
+No new trained-model plots are created by this CPU audit. Final selected plots and tables are stored under `docs/final_assets/` and are generated from the completed H200 run's reported metrics/log evidence.
 
 ## 6. README Changes
 
-README should only claim the completed 0.5B pipeline validation and should not claim broad trained-model improvement until larger held-out and challenge evaluations are run.
+README should claim the Qwen3-4B final H200 SFT+GRPO result only within the reported synthetic MVP families, prompt variants, and eval seeds `1000-1019`.
 
 ## 7. TRAINING_RUN_LOG.md Update
 
@@ -320,29 +320,28 @@ TRAINING_RUN_LOG.md records:
 - earlier failed base 0.5B GRPO attempt
 - SFT warmstart recovery
 - GRPO validation caveat
-- no broad final claim yet
+- final Qwen3-4B H200 selection
+- failed/intermediate larger-model runs kept as audit evidence
 
-This audit adds the next required evidence gate: larger held-out and challenge model evaluation before Run 2 or final claims.
-
-Exact next HF Jobs command, when approved:
+The final H200 run is complete. The historical HF eval command remains here only as a reproducibility reference:
 
 ```bash
 {HF_EVAL_COMMAND}
 ```
 
-## 8. GO / NO-GO For 1.5B
+## 8. Larger-Model Decision
 
-Decision: **NO-GO until post-hardening 0.5B held-out and challenge model evaluation are inspected.**
+Decision: **Qwen3-4B final H200 SFT+GRPO is selected.**
 
-Reason: the existing 0.5B result is real and useful, but it is perfect on a small eval and saturated after SFT. Elite reviewers will expect a leakage/generalization check before scaling.
+Reason: the selected run improves the reported challenge evidence/certificate metrics while keeping invalid JSON, overblocking, and hardcoded patch rates at `0.0000`.
 
 ## 9. GO / NO-GO For Final Training Claims
 
-Decision: **NO-GO for final trained-vs-baseline claims. GO only for pipeline-validation claims.**
+Decision: **GO for bounded final Qwen3-4B claims.**
 
 Safe claim today:
 
-> 0.5B base GRPO collapsed into invalid JSON. A small SFT format warmstart fixed valid repair-plan generation. Verifier-scored held-out evaluation showed certificate success and hidden regression pass on the reported eval seeds, with GRPO serving as a pipeline validation after SFT saturation.
+> Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200 is the selected trained result for the reported synthetic MVP families, prompt variants, and eval seeds `1000-1019`.
 
 Unsafe claims:
 
@@ -350,7 +349,9 @@ Unsafe claims:
 - broad production safety
 - SOTA
 - unlimited generalization
-- 1.5B or 4B results
+- 1.5B success
+- Qwen2.5-3B success
+- failed/error H200 jobs as successful
 """
     AUDIT_MD.write_text(content, encoding="utf-8")
 
@@ -364,7 +365,7 @@ def main() -> int:
     print(f"generalization_audit: leakage_status={leakage['status']}")
     print(f"generalization_audit: wrote {OUTPUT_DIR / 'leakage_audit.json'}")
     print(f"generalization_audit: wrote {AUDIT_MD}")
-    print("generalization_audit: model larger held-out eval pending; no trained plots created")
+    print("generalization_audit: final Qwen3-4B claims bounded; no local model inference run")
     return 0
 
 

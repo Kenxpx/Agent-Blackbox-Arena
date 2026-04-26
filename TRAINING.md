@@ -1,6 +1,8 @@
 # Training Plan
 
-Gate 4/5 produced the training scaffold, and the first controlled 0.5B HF run has now validated the pipeline after an SFT format warmstart. The successful run proves that model loading, strict JSON output, deterministic verifier reward, sampled generation logging, held-out evaluation, checkpoint saving, and stop-loss reporting work. It does not by itself prove broad trained-model improvement, because the tiny GRPO phase was saturated after SFT warmup.
+Final update: the selected trained result is `Qwen/Qwen3-4B-Instruct-2507` SFT+GRPO final H200 from HF job `69edcef7d70108f37acdfeb3`. The earlier plan below is kept as the training history and reproducibility guide: it explains the gates, stop-loss discipline, and why failed/intermediate runs were not promoted into final claims.
+
+Gate 4/5 produced the training scaffold, and the first controlled 0.5B HF run validated the pipeline after an SFT format warmstart. That run proved model loading, strict JSON output, deterministic verifier reward, sampled generation logging, held-out evaluation, checkpoint saving, and stop-loss reporting. Later challenge hardening and H200 stretch runs produced the final Qwen3-4B result.
 
 The environment is the innovation. Training evidence is used to show that the replay -> repair -> regress -> certify loop gives a learnable reward signal. The post-0.5B hardening pass now shuffles candidate answer order and tightens certificate gating, so any final trained claim should come from a fresh post-hardening evaluation.
 
@@ -390,7 +392,7 @@ Enable optional GRPO only after SFT challenge metrics are healthy:
 RUN_GRPO=1 bash scripts/hf_run_05b_challenge_curriculum.sh
 ```
 
-Do not run 1.5B until the 0.5B challenge-curriculum run shows nonzero challenge evidence correctness and certificate success, invalid JSON near zero, overblocking near zero, and hardcoded patch rate zero.
+At this stage, 1.5B stayed locked until the 0.5B challenge-curriculum run showed nonzero challenge evidence correctness and certificate success, invalid JSON near zero, overblocking near zero, and hardcoded patch rate zero.
 
 ## Run 2: 1.5B Locked HF Command
 
@@ -487,8 +489,8 @@ Do not create these before real training.
 
 If LoRA or QLoRA is used, test post-training inference immediately. Do not naively upcast a 4-bit model to 16-bit and merge adapters. Use the proper adapter save or merged-save path for the training stack.
 
-## No Fake Results
+## Final Evidence Policy
 
-Do not claim trained model improvement, SOTA, production certification, or global safety from baseline, smoke, or saturated tiny-run evidence alone.
+The final trained-model claim comes from the completed Qwen3-4B H200 SFT+GRPO run and is limited to the reported synthetic MVP families, prompt variants, and eval seeds `1000-1019`.
 
-Allowed current claim: the first 0.5B HF run validates the strict JSON training pipeline and verifier-scored held-out evaluation after a tiny SFT warmstart. Do not claim broad improvement until a non-saturated run or a wider held-out comparison proves it.
+Historical smoke, 0.5B, 1.5B, 3B, and intermediate Qwen3 runs remain useful audit evidence, but they are not the selected final model. The submission does not claim SOTA, production certification, global safety, 1.5B success, or Qwen2.5-3B success.

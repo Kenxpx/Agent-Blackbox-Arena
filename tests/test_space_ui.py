@@ -33,7 +33,10 @@ def test_space_resource_links_are_stable_public_urls():
         f"{repo}/blob/main/notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb",
         f"{repo}/blob/main/SUBMISSION_EVIDENCE.md",
         f"{repo}/blob/main/FINAL_SUBMISSION_AUDIT.md",
+        f"{repo}/blob/main/FINAL_FORM_SUBMISSION_CHECKLIST.md",
         f"{repo}/blob/main/TRAINING_RUN_LOG.md",
+        f"{repo}/blob/main/BLOG.md",
+        f"{repo}/tree/main/docs/final_assets",
         f"{repo}/blob/main/openenv.yaml",
         f"{repo}/tree/main/training",
         "/metadata",
@@ -42,8 +45,8 @@ def test_space_resource_links_are_stable_public_urls():
         assert f'href="{link}"' in html
     assert 'href="#"' not in html
     assert f'href="{repo}#agent-blackbox-arena"' not in html
-    assert "Video / Blog" in html
-    assert "link pending before final submission" in html
+    assert "Blog Writeup" in html
+    assert "link pending before final submission" not in html
 
 
 def test_metadata_endpoint_keeps_json_metadata():

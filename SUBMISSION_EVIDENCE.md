@@ -1,6 +1,8 @@
 # Submission Evidence
 
-This file tracks real evidence only. No fake training results, fake plots, or fake notebooks are claimed.
+This evidence ledger keeps the final submission claim tied to concrete artifacts. Metrics, plots, notebooks, and logs listed here come from repo files or saved HF job output.
+
+The selected evidence is **Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200**, HF Job `69edcef7d70108f37acdfeb3`, output root `outputs/larger_models/qwen3_4b_2507_final_h200/`. The result is scoped to the reported synthetic MVP families, prompt variants, and eval seeds `1000-1019`.
 
 ## Execution Method
 
@@ -20,6 +22,15 @@ Training and evaluation have been run through Hugging Face Jobs CLI and reposito
 | `69ed1a3ed2c8bd8662bce516` | `t4-small` | completed | Tiny SFT warmstart plus 0.5B GRPO validation succeeded on reported small held-out eval. |
 | `69ed520cd2c8bd8662bcea54` | `t4-small` | canceled | Larger-eval attempt canceled intentionally. |
 | `69ed549bd70108f37acdf273` | `t4-small` | completed | Pre-hardening larger 0.5B standard and shuffled challenge evaluation. |
+| `69eda5a4d70108f37acdfa48` | `t4-small` | completed | 0.5B challenge-curriculum SFT historical fallback baseline. |
+| `69edaafcd70108f37acdfadb` | `t4-small` | canceled | 1.5B canceled by stoploss; no 1.5B result claimed. |
+| `69edc89ed2c8bd8662bcf90c` | `h200` | error | Qwen2.5-3B fast r1 failed on H200 CUDA/BF16 initialization; not claimed. |
+| `69edc8a5d70108f37acdfe18` | `h200` | error | Qwen3-4B fast r1 failed on H200 CUDA/BF16 initialization; not claimed. |
+| `69edc9b8d2c8bd8662bcf937` | `h200` | completed | Qwen2.5-3B fast retry completed but SFT gate stopped; no 3B success claim. |
+| `69edcb91d70108f37acdfe5a` | `h200` | completed | Qwen2.5-3B fast r2 completed but SFT gate stopped; no 3B success claim. |
+| `69edc9c3d2c8bd8662bcf93c` | `h200` | error | Qwen3-4B fast retry produced useful SFT signal but errored during GRPO evaluation; not final. |
+| `69edcb9ad70108f37acdfe5e` | `h200` | completed | Qwen3-4B fast r2 passed but was intermediate and weaker than final. |
+| `69edcef7d70108f37acdfeb3` | `h200` | completed | Final selected Qwen3-4B SFT+GRPO H200 result. |
 
 Post-hardening 0.5B job `69ed986cd70108f37acdf8ba` completed and printed `POST_HARDENING_0_5B_COMPLETE`. It is not final improvement evidence: challenge variants exposed evidence-grounding failure and GRPO stoploss reported `STOP`. The next evidence step is a 0.5B challenge-curriculum run, not 1.5B.
 
@@ -52,8 +63,9 @@ python scripts/package_submission_evidence.py
 | Base eval | `Qwen/Qwen2.5-0.5B-Instruct` | `t4-small` | Used as zero-shot comparison. |
 | SFT warmstart | `Qwen/Qwen2.5-0.5B-Instruct` | `t4-small` | Format/action warmstart, not a standalone safety claim. |
 | GRPO validation | SFT checkpoint | `t4-small` | Verifier-scored validation after SFT. |
+| Final selected | `Qwen/Qwen3-4B-Instruct-2507` | `h200` | SFT+GRPO final H200, job `69edcef7d70108f37acdfeb3`. |
 
-No 1.5B or 4B run has been performed after the Rank-1 anti-leakage hardening patch.
+The 1.5B and Qwen2.5-3B attempts are not final claims. 1.5B was canceled by stoploss. Qwen2.5-3B H200 attempts failed or were STOP-gated. Qwen3-4B final H200 is the selected model.
 
 ## Seeds And Prompt Variants
 
@@ -85,12 +97,12 @@ Known pre-hardening evidence:
 - SFT+GRPO 0.5B passed reported standard hidden-regression and certificate metrics after SFT.
 - Pre-hardening `shuffled_surface_blind` challenge did not collapse, but `overall_score` was `0.78`, which motivated stricter anti-leakage hardening.
 
-Post-hardening evidence still required:
+Post-hardening evidence status:
 
-- fresh standard eval
-- fresh `shuffled_surface_blind` eval
-- fresh `combined_blind_shuffle` eval
-- plots generated only from those real model-eval summaries
+- standard eval completed for the selected Qwen3-4B run
+- `shuffled_surface_blind` eval completed for the selected Qwen3-4B run
+- `combined_blind_shuffle` eval completed for the selected Qwen3-4B run
+- clean final plots and tables are stored under `docs/final_assets/`
 
 Post-curriculum evidence now available:
 
@@ -99,22 +111,65 @@ Post-curriculum evidence now available:
 - Real plots are under `outputs/final_plots/`.
 - The 1.5B attempt `69edaafcd70108f37acdfadb` was canceled after `quality_status=STOP`; no 1.5B result is claimed.
 
-Next prepared evidence run:
+Final Qwen3-4B H200 evidence now available:
 
-- `scripts/hf_run_05b_challenge_curriculum.sh` is the next unlocked HF script.
-- `scripts/hf_run_15b_challenge_curriculum.sh` exists but is locked until the 0.5B challenge-curriculum run passes.
-- `scripts/hf_run_4b_stretch.sh` exists but is locked until the 1.5B run passes.
-- H200 is not part of the evidence plan until smaller gates show the benchmark and curriculum are scientifically healthy.
+- HF job `69edcef7d70108f37acdfeb3` completed and printed `POST_FINAL_QWEN3_4B_H200_COMPLETE`.
+- Final selected model: `Qwen/Qwen3-4B-Instruct-2507`.
+- Final selected checkpoint: `SFT+GRPO`.
+- Output root: `outputs/larger_models/qwen3_4b_2507_final_h200/`.
+- Log file: `logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt`.
+- Recent run report: `FINAL_RECENT_H200_RUNS_REPORT.md`.
+
+Final metrics over eval seeds `1000-1019`:
+
+| Variant | Overall | Certificate | Evidence | Hidden pass | Valid preserve | Invalid JSON | Overblocking | Hardcoded patch |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `standard` | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
+| `shuffled_surface_blind` | 0.9557 | 0.8833 | 0.8833 | 1.0000 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
+| `combined_blind_shuffle` | 0.9367 | 0.8333 | 0.8333 | 1.0000 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
+
+Final plot paths:
+
+- Clean final assets:
+  - `docs/final_assets/plots/qwen3_4b_sft_loss.png`
+  - `docs/final_assets/plots/qwen3_4b_grpo_reward.png`
+  - `docs/final_assets/plots/qwen3_4b_eval_overall.png`
+  - `docs/final_assets/plots/qwen3_4b_certificate_success.png`
+  - `docs/final_assets/plots/qwen3_4b_evidence_correctness.png`
+  - `docs/final_assets/plots/qwen3_4b_safety_rates.png`
+- Clean metrics assets:
+  - `docs/final_assets/metrics/final_qwen3_4b_metrics.json`
+  - `docs/final_assets/tables/final_qwen3_4b_metrics.csv`
+  - `docs/final_assets/tables/final_qwen3_4b_metrics.md`
+- Loss/reward provenance:
+  - `qwen3_4b_sft_loss.png` and `qwen3_4b_grpo_reward.png` are derived from real final H200 log/tracking evidence, not invented curves.
+  - The final GRPO reward rows are visible in `logs/final/hf_job_qwen3_4b_final_h200_69edcef7d70108f37acdfeb3_tail.txt`.
+- Remote H200 output paths recorded in the final log:
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/sft_training/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_model_eval/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/plots/grpo_training/`
+
+Final tracking paths:
+
+- `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/sft_warmstart_sft_qwen3_4b_2507_final_h200_challenge_curriculum/`
+- `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/grpo_grpo_qwen3_4b_2507_final_h200_challenge_curriculum/`
+
+Training status:
+
+- final training is complete
+- no additional 1.5B, 3B, 4B, or H200 job is needed for the submission package
+- historical scripts remain in `scripts/` for audit/reproducibility, not as active next steps
 
 Experimental tracking:
 
-- CSV/JSON logs remain the source of truth.
+- CSV/JSON logs remain the underlying record.
 - TensorBoard-compatible artifacts are written under `outputs/tracking/` during real SFT/GRPO runs.
 - Lightweight loss/reward plots are written under `outputs/final_plots/` only when real tracking or verifier reward rows exist.
 
 ## Stop-Loss Decisions
 
-Run 2 / 1.5B is locked until post-hardening 0.5B summaries are inspected.
+All training is stopped. Final selected model is Qwen3-4B H200 SFT+GRPO. No further model runs are needed for this submission package.
 
 Stop if any post-hardening 0.5B run shows:
 
@@ -126,24 +181,28 @@ Stop if any post-hardening 0.5B run shows:
 - overblocking or hardcoded-patch behavior
 - no real model-eval logs
 
-## Allowed Claims
+## Claim Boundaries
 
-Allowed only if supported by real logs:
+Supported by the evidence above:
 
 - Agent BlackBox Arena is an OpenEnv-style repair environment with hidden regressions and certificate gating.
 - Baseline policies score low while the oracle sanity solver scores high.
 - The first 0.5B GRPO-only attempt exposed an invalid-JSON formatting bottleneck.
 - A small SFT warmstart fixed strict repair-plan generation on the reported held-out seeds.
-- The post-hardening 0.5B run passed standard and challenge metrics only after those fresh summaries exist.
+- Qwen3-4B final H200 SFT+GRPO is the final selected model based on real HF Job `69edcef7d70108f37acdfeb3`.
+- The selected result passed standard, `shuffled_surface_blind`, and `combined_blind_shuffle` verifier-scored eval over seeds `1000-1019`.
+- The selected result had `invalid_json_rate=0.0000`, `overblocking_rate=0.0000`, `hardcoded_patch_rate=0.0000`, and stoploss `PASS`.
 
-## Unsafe Claims
+## Not Claimed
 
-Do not claim:
+The submission does not claim:
 
 - broad production safety
 - SOTA
 - GRPO learned from scratch
-- 1.5B or 4B results before those jobs run
+- 1.5B success
+- Qwen2.5-3B success
+- failed/error H200 jobs as successful
 - unlimited generalization
 - trained improvement from fake or placeholder plots
 - certificate as a global safety proof

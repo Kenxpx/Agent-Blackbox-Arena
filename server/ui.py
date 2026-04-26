@@ -38,15 +38,15 @@ def _plot_panel(filename: str, title: str, kicker: str, caption: str) -> str:
 def render_homepage() -> str:
     loss_plot = _plot_panel(
         "hf_05b_challenge_curriculum_training_loss_curve.png",
-        "Training dynamics",
-        "real HF job artifact",
-        "Loss falls during the controlled 0.5B challenge-curriculum SFT run, showing stable format and repair-plan warmstart behavior.",
+        "Historical 0.5B training dynamics",
+        "historical fallback artifact",
+        "Loss from the controlled 0.5B challenge-curriculum SFT run is retained as iteration evidence. The selected final model is Qwen3-4B H200 SFT+GRPO.",
     )
     reward_plot = _plot_panel(
         "hf_05b_challenge_curriculum_verifier_reward_comparison.png",
-        "Verifier-scored comparison",
-        "real extracted evaluation",
-        "Verifier metrics show base-model JSON failure, strong standard repair behavior, and partial challenge recovery under stricter prompts.",
+        "Historical verifier-scored comparison",
+        "historical extracted evaluation",
+        "Verifier metrics show the 0.5B fallback path and why the later Qwen3-4B H200 run was selected.",
     )
     return Template(_HTML).safe_substitute(
         GITHUB_ROOT=GITHUB_ROOT,
@@ -1037,51 +1037,51 @@ _HTML = """<!doctype html>
             <div class="eyebrow">Verifier-scored evidence</div>
             <h2>Results Overview</h2>
           </div>
-          <p>Real current metrics from the bounded 0.5B challenge-curriculum SFT evidence. No 1.5B or 4B result is claimed.</p>
+          <p>Final selected metrics from the bounded Qwen3-4B H200 SFT+GRPO run over eval seeds 1000-1019. No 1.5B or Qwen2.5-3B success is claimed.</p>
         </div>
         <div class="results-grid">
           <article class="result-card">
-            <h3>Base 0.5B standard</h3>
-            <span class="score">0.0000</span>
+            <h3>Qwen3-4B standard</h3>
+            <span class="score">1.0000</span>
             <div class="metric-list">
-              <div><span>certificate</span><b>0.0000</b></div>
-              <div><span>evidence</span><b>0.0000</b></div>
-              <div><span>invalid JSON</span><b>1.0000</b></div>
-            </div>
-          </article>
-          <article class="result-card">
-            <h3>SFT standard</h3>
-            <span class="score">0.9492</span>
-            <div class="metric-list">
-              <div><span>certificate</span><b>0.9333</b></div>
+              <div><span>certificate</span><b>1.0000</b></div>
               <div><span>evidence</span><b>1.0000</b></div>
               <div><span>invalid JSON</span><b>0.0000</b></div>
             </div>
           </article>
           <article class="result-card">
-            <h3>SFT shuffled challenge</h3>
-            <span class="score">0.6710</span>
+            <h3>Qwen3-4B shuffled</h3>
+            <span class="score">0.9557</span>
             <div class="metric-list">
-              <div><span>certificate</span><b>0.1833</b></div>
-              <div><span>evidence</span><b>0.1833</b></div>
+              <div><span>certificate</span><b>0.8833</b></div>
+              <div><span>evidence</span><b>0.8833</b></div>
               <div><span>invalid JSON</span><b>0.0000</b></div>
             </div>
           </article>
           <article class="result-card">
-            <h3>SFT combined challenge</h3>
-            <span class="score">0.6753</span>
+            <h3>Qwen3-4B combined</h3>
+            <span class="score">0.9367</span>
             <div class="metric-list">
-              <div><span>certificate</span><b>0.2167</b></div>
-              <div><span>evidence</span><b>0.2167</b></div>
+              <div><span>certificate</span><b>0.8333</b></div>
+              <div><span>evidence</span><b>0.8333</b></div>
               <div><span>invalid JSON</span><b>0.0000</b></div>
+            </div>
+          </article>
+          <article class="result-card">
+            <h3>Safety gates</h3>
+            <span class="score">PASS</span>
+            <div class="metric-list">
+              <div><span>overblocking</span><b>0.0000</b></div>
+              <div><span>hardcoded patch</span><b>0.0000</b></div>
+              <div><span>stoploss</span><b>PASS</b></div>
             </div>
           </article>
         </div>
         <div class="takeaways">
-          <div class="takeaway"><b>Base failed JSON</b>Base Qwen2.5-0.5B could not emit usable repair plans.</div>
-          <div class="takeaway"><b>SFT fixed action format</b>Challenge curriculum produced strict JSON repair-plan outputs.</div>
-          <div class="takeaway"><b>Challenge recovered</b>Evidence grounding recovered from zero to nonzero on blinded variants.</div>
-          <div class="takeaway"><b>Stop-loss prevented hype</b>1.5B was canceled by quality gate; no larger-model claim is made.</div>
+          <div class="takeaway"><b>Selected model</b>Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200.</div>
+          <div class="takeaway"><b>Challenge strength</b>Shuffled evidence/certificate 0.8833; combined evidence/certificate 0.8333.</div>
+          <div class="takeaway"><b>Safety gates</b>Invalid JSON, overblocking, and hardcoded patch rates are all 0.0000.</div>
+          <div class="takeaway"><b>Stop-loss honesty</b>1.5B and Qwen2.5-3B are not claimed; 0.5B is historical fallback only.</div>
         </div>
       </div>
     </section>
@@ -1093,15 +1093,15 @@ _HTML = """<!doctype html>
             <div class="eyebrow">Experimental proof</div>
             <h2>Experimental Results</h2>
           </div>
-          <p>The plots are generated from extracted HF Jobs evidence and verifier summaries, not placeholders.</p>
+          <p>The final H200 plot paths are recorded in the evidence docs. Historical 0.5B plots remain visible here as iteration evidence, not as the selected final result.</p>
         </div>
         <div class="plot-stack">
           <div class="variant-chips" aria-label="Variant metric chips">
-            <div class="variant-chip"><strong>Standard</strong><span>overall 0.9492 | cert 0.9333 | evidence 1.0000</span></div>
-            <div class="variant-chip"><strong>Shuffled challenge</strong><span>overall 0.6710 | cert 0.1833 | evidence 0.1833</span></div>
-            <div class="variant-chip"><strong>Combined challenge</strong><span>overall 0.6753 | cert 0.2167 | evidence 0.2167</span></div>
+            <div class="variant-chip"><strong>Standard</strong><span>overall 1.0000 | cert 1.0000 | evidence 1.0000</span></div>
+            <div class="variant-chip"><strong>Shuffled challenge</strong><span>overall 0.9557 | cert 0.8833 | evidence 0.8833</span></div>
+            <div class="variant-chip"><strong>Combined challenge</strong><span>overall 0.9367 | cert 0.8333 | evidence 0.8333</span></div>
           </div>
-          <p style="color: var(--muted); margin: -8px 0 0;">Challenge evidence improved from 0.0 to nonzero after curriculum hardening. Claims remain bounded.</p>
+          <p style="color: var(--muted); margin: -8px 0 0;">Final H200 output root: <code>outputs/larger_models/qwen3_4b_2507_final_h200/</code>. Claims remain bounded to synthetic families and eval seeds 1000-1019.</p>
           $LOSS_PLOT
           $REWARD_PLOT
         </div>
@@ -1168,10 +1168,12 @@ _HTML = """<!doctype html>
           <a class="resource-card" href="$GITHUB_ROOT/blob/main/TRAINING_RUN_LOG.md" target="_blank" rel="noopener noreferrer"><strong>Training Run Log</strong><span>jobs and stop-loss</span></a>
           <a class="resource-card" href="$GITHUB_ROOT/blob/main/SUBMISSION_EVIDENCE.md" target="_blank" rel="noopener noreferrer"><strong>Submission Evidence</strong><span>generated locally by package script</span></a>
           <a class="resource-card" href="$GITHUB_ROOT/blob/main/FINAL_SUBMISSION_AUDIT.md" target="_blank" rel="noopener noreferrer"><strong>Final Audit</strong><span>claims and limits</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/FINAL_FORM_SUBMISSION_CHECKLIST.md" target="_blank" rel="noopener noreferrer"><strong>Form Checklist</strong><span>exact final submission URLs</span></a>
+          <a class="resource-card" href="$GITHUB_ROOT/tree/main/docs/final_assets" target="_blank" rel="noopener noreferrer"><strong>Final Assets</strong><span>plots, metrics, and tables</span></a>
           <a class="resource-card" href="/metadata"><strong>API Metadata</strong><span>machine-readable JSON</span></a>
           <a class="resource-card" href="$GITHUB_ROOT/blob/main/openenv.yaml" target="_blank" rel="noopener noreferrer"><strong>OpenEnv YAML</strong><span>runtime manifest</span></a>
           <a class="resource-card" href="$GITHUB_ROOT/tree/main/training" target="_blank" rel="noopener noreferrer"><strong>Training Scripts</strong><span>SFT / GRPO scaffolds</span></a>
-          <div class="resource-card disabled" aria-disabled="true"><strong>Video / Blog</strong><span>link pending before final submission</span></div>
+          <a class="resource-card" href="$GITHUB_ROOT/blob/main/BLOG.md" target="_blank" rel="noopener noreferrer"><strong>Blog Writeup</strong><span>project story and final metrics</span></a>
         </div>
         <p style="color: var(--muted); margin: 14px 0 0;">Evidence package note: `submission_evidence.zip` is generated locally by <code>python scripts/package_submission_evidence.py</code>; this page links to the evidence manifest instead of a broken zip.</p>
       </div>

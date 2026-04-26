@@ -1,0 +1,4 @@
+variant,overall_score,certificate_success_rate,evidence_correct_rate,hidden_regression_pass_rate,valid_preservation_rate,invalid_json_rate,overblocking_rate,hardcoded_patch_rate
+standard,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0
+shuffled_surface_blind,0.9557,0.8833,0.8833,1.0,1.0,0.0,0.0,0.0
+combined_blind_shuffle,0.9367,0.8333,0.8333,1.0,1.0,0.0,0.0,0.0
