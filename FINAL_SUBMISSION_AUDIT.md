@@ -28,13 +28,13 @@ The repo is runnable, OpenEnv-style, CPU environment compatible, tested locally,
 
 Space URL: `https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena`
 
-Space status must be checked after upload:
+Space verification:
 
-- `/` metadata loads
-- `/reset` works
-- `/step` works
-- `/state` works
-- `python scripts/space_smoke.py` passes locally
+- `/` metadata loads: PASS
+- `/reset` works: PASS
+- `/step` works: PASS
+- `/state` works: PASS
+- `python scripts/space_smoke.py` passes locally through `scripts/self_check.py`: PASS
 
 ## Training Jobs
 
@@ -121,4 +121,4 @@ Base 0.5B standard:
 
 ## Final Decision
 
-Submission is technically ready after HF Space verification and external video/blog link are added. Use 0.5B challenge-curriculum SFT as the honest final trained evidence.
+Submission is technically ready after the external video/blog link is added. Use 0.5B challenge-curriculum SFT as the honest final trained evidence.
