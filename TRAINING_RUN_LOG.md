@@ -4,6 +4,21 @@ Current decision: **FINAL SELECTED MODEL is Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO
 
 This log records real Hugging Face Jobs output. No fake metrics, fake plots, or trained-improvement claims are made.
 
+## Start Here For Judges
+
+The final selected result is near the end of this log under [Final Larger-Model H200 Selection](#final-larger-model-h200-selection). The earlier 0.5B sections are kept because they show the debugging path, stop-loss discipline, and historical baseline.
+
+Quick final summary:
+
+- Selected model: `Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200`
+- Final HF Job: `69edcef7d70108f37acdfeb3`
+- Standard overall: `1.0000`
+- Shuffled challenge overall: `0.9557`
+- Combined challenge overall: `0.9367`
+- Invalid JSON / overblocking / hardcoded patch rates: `0.0000`
+- Stoploss: `PASS`
+- Historical 0.5B baseline: standard `0.9492`, shuffled `0.6710`, combined `0.6753`
+
 ## Phase 0 - Job Diagnosis
 
 Relevant jobs inspected:
