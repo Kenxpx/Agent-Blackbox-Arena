@@ -1,3 +1,11 @@
+---
+title: Agent BlackBox Arena
+sdk: docker
+app_port: 8000
+pinned: false
+license: mit
+---
+
 # Agent BlackBox Arena
 
 **Replay. Repair. Regress. Certify.**
