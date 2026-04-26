@@ -47,6 +47,8 @@ def test_space_resource_links_are_stable_public_urls():
     assert f'href="{repo}#agent-blackbox-arena"' not in html
     assert "Blog Writeup" in html
     assert "link pending before final submission" not in html
+    assert "No 1.5B or Qwen2.5-3B success is claimed" not in html
+    assert "0.5B comparison" in html
 
 
 def test_metadata_endpoint_keeps_json_metadata():

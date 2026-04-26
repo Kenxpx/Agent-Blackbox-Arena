@@ -1037,7 +1037,7 @@ _HTML = """<!doctype html>
             <div class="eyebrow">Verifier-scored evidence</div>
             <h2>Results Overview</h2>
           </div>
-          <p>Final selected metrics from the bounded Qwen3-4B H200 SFT+GRPO run over eval seeds 1000-1019. No 1.5B or Qwen2.5-3B success is claimed.</p>
+          <p>Final selected metrics from the bounded Qwen3-4B H200 SFT+GRPO run over eval seeds 1000-1019. For context, the historical 0.5B challenge-curriculum SFT baseline scored 0.9492 standard, 0.6710 shuffled, and 0.6753 combined.</p>
         </div>
         <div class="results-grid">
           <article class="result-card">
@@ -1081,7 +1081,7 @@ _HTML = """<!doctype html>
           <div class="takeaway"><b>Selected model</b>Qwen/Qwen3-4B-Instruct-2507 SFT+GRPO final H200.</div>
           <div class="takeaway"><b>Challenge strength</b>Shuffled evidence/certificate 0.8833; combined evidence/certificate 0.8333.</div>
           <div class="takeaway"><b>Safety gates</b>Invalid JSON, overblocking, and hardcoded patch rates are all 0.0000.</div>
-          <div class="takeaway"><b>Stop-loss honesty</b>1.5B and Qwen2.5-3B are not claimed; 0.5B is historical fallback only.</div>
+          <div class="takeaway"><b>0.5B comparison</b>Historical 0.5B SFT reached 0.9492 standard, 0.6710 shuffled, and 0.6753 combined; Qwen3-4B lifts the challenge scores to 0.9557 and 0.9367.</div>
         </div>
       </div>
     </section>

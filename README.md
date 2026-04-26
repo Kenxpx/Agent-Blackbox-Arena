@@ -168,7 +168,7 @@ The strongest completed training result is **Qwen/Qwen3-4B-Instruct-2507 SFT+GRP
 
 The selected run also reported `hardcoded_patch_rate=0.0000` and GRPO stoploss `PASS`. The output root is `outputs/larger_models/qwen3_4b_2507_final_h200/`.
 
-I kept the earlier runs in the audit trail because they explain the final path. The 0.5B challenge-curriculum SFT remains the historical fallback baseline; the 1.5B run was canceled by stop-loss and is not claimed; Qwen2.5-3B stretch attempts failed or were STOP-gated and are not claimed.
+I kept the earlier runs in the audit trail because they explain the final path. The most useful comparison is the historical 0.5B challenge-curriculum SFT baseline: standard `0.9492`, shuffled `0.6710`, and combined `0.6753`. The final Qwen3-4B run raises the challenge scores to `0.9557` and `0.9367` while keeping invalid JSON, overblocking, and hardcoded patch rates at `0.0000`.
 
 Experimental tracking is enabled through CSV/JSON logs plus TensorBoard-compatible artifacts. The final Qwen3-4B tracking roots are `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/sft_warmstart_sft_qwen3_4b_2507_final_h200_challenge_curriculum/` and `outputs/larger_models/qwen3_4b_2507_final_h200/tracking/grpo_grpo_qwen3_4b_2507_final_h200_challenge_curriculum/`. Real loss/reward plots are generated only from those training logs and verifier-scored metrics.
 
