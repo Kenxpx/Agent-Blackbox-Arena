@@ -1,10 +1,14 @@
 {
-  "episodes": 12,
-  "overall_score": 0.42,
-  "certificate_success_rate": 0.25,
-  "hidden_regression_pass_rate": 0.375,
-  "valid_preservation_rate": 0.25,
-  "invalid_json_rate": 0.25,
-  "overblocking_rate": 0.25,
-  "hardcoded_patch_rate": 0.25
+  "episodes": 15,
+  "overall_score": 0.536,
+  "certificate_success_rate": 0.4,
+  "hidden_regression_pass_rate": 0.5,
+  "valid_preservation_rate": 0.4,
+  "evidence_correct_rate": 0.8,
+  "root_cause_correct_rate": 0.8,
+  "patch_blocks_rate": 0.8,
+  "certificate_gate_fail_rate": 0.0,
+  "invalid_json_rate": 0.2,
+  "overblocking_rate": 0.2,
+  "hardcoded_patch_rate": 0.2
 }

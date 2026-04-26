@@ -7,90 +7,755 @@ This file is intentionally conservative. It separates real completed 0.5B eviden
 Result: **PASS**
 
 - Hidden prompt leakage: `passed`
-- Records checked across standard and challenge variants: `900`
+- Records checked across standard and challenge variants: `1050`
 - Target JSON appears verbatim in eval prompts: `False`
 - Incident IDs usable for hardcoding in prompts: `False`
-- Candidate answer positions vary across challenge eval seeds: `True`
+- Candidate answer positions vary across train/eval/challenge slices: `True`
 - Family-specific labels: public metadata in standard OpenEnv prompts; blind-family challenge prompts are available to test dependence on that metadata.
 
-Candidate position audit:
+Candidate answer-position distribution:
 
 ```json
 {
-  "missing_verification": {
-    "all_answers_first": false,
-    "forbid_positions": [
-      0,
-      1,
-      2
-    ],
-    "preserve_positions": [
-      0,
-      1,
-      2
-    ],
-    "require_positions": [
-      0,
-      1,
-      2
-    ],
-    "root_cause_positions": [
-      0,
-      1,
-      2,
-      3,
-      4
-    ]
+  "combined_blind_shuffle_eval": {
+    "missing_verification": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 4,
+          "1": 8,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 2,
+          "1": 8,
+          "2": 10
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 4,
+          "1": 8,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 6,
+          "2": 6,
+          "3": 4,
+          "4": 3
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "permission_scope": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 8,
+          "2": 9
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 2,
+          "1": 12,
+          "2": 6
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 8,
+          "2": 9
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 6,
+          "1": 6,
+          "2": 2,
+          "3": 3,
+          "4": 3
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "stale_retrieval": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 2,
+          "1": 13,
+          "2": 5
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 9,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 4,
+          "1": 8,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 3,
+          "2": 3,
+          "3": 5,
+          "4": 6
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    }
   },
-  "permission_scope": {
-    "all_answers_first": false,
-    "forbid_positions": [
-      0,
-      1,
-      2
-    ],
-    "preserve_positions": [
-      0,
-      1,
-      2
-    ],
-    "require_positions": [
-      0,
-      1,
-      2
-    ],
-    "root_cause_positions": [
-      0,
-      1,
-      2,
-      3,
-      4
-    ]
+  "sft_train_standard": {
+    "missing_verification": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 2,
+          "2": 3
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "1": 3,
+          "2": 3
+        },
+        "positions_seen": [
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "2": 3
+        },
+        "positions_seen": [
+          0,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 2,
+          "3": 1,
+          "4": 2
+        },
+        "positions_seen": [
+          0,
+          1,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "permission_scope": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "1": 4,
+          "2": 2
+        },
+        "positions_seen": [
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 1,
+          "2": 4
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 1,
+          "2": 4
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 2,
+          "3": 1,
+          "4": 2
+        },
+        "positions_seen": [
+          0,
+          1,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "stale_retrieval": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 2,
+          "2": 3
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 2,
+          "2": 3
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 4,
+          "2": 1
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 1,
+          "2": 1,
+          "4": 1
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          4
+        ],
+        "single_position": false
+      }
+    }
   },
-  "stale_retrieval": {
-    "all_answers_first": false,
-    "forbid_positions": [
-      0,
-      1,
-      2
-    ],
-    "preserve_positions": [
-      0,
-      1,
-      2
-    ],
-    "require_positions": [
-      0,
-      1,
-      2
-    ],
-    "root_cause_positions": [
-      0,
-      1,
-      2,
-      3,
-      4
-    ]
+  "shuffled_surface_blind_eval": {
+    "missing_verification": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 5,
+          "1": 7,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 8,
+          "2": 9
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 2,
+          "1": 11,
+          "2": 7
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 4,
+          "1": 1,
+          "2": 4,
+          "3": 8,
+          "4": 3
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "permission_scope": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 4,
+          "2": 13
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 1,
+          "1": 9,
+          "2": 10
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 9,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 7,
+          "1": 4,
+          "2": 4,
+          "3": 4,
+          "4": 1
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "stale_retrieval": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 9,
+          "2": 8
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 3,
+          "1": 7,
+          "2": 10
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 5,
+          "1": 6,
+          "2": 9
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 2,
+          "1": 4,
+          "2": 5,
+          "3": 3,
+          "4": 6
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    }
+  },
+  "standard_eval": {
+    "missing_verification": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 16,
+          "1": 17,
+          "2": 17
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 7,
+          "1": 19,
+          "2": 24
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 6,
+          "1": 20,
+          "2": 24
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 10,
+          "1": 10,
+          "2": 7,
+          "3": 10,
+          "4": 13
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "permission_scope": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 6,
+          "1": 23,
+          "2": 21
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 8,
+          "1": 17,
+          "2": 25
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 7,
+          "1": 23,
+          "2": 20
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 4,
+          "1": 14,
+          "2": 11,
+          "3": 9,
+          "4": 12
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    },
+    "stale_retrieval": {
+      "forbid": {
+        "always_first": false,
+        "counts": {
+          "0": 9,
+          "1": 23,
+          "2": 18
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "preserve": {
+        "always_first": false,
+        "counts": {
+          "0": 6,
+          "1": 29,
+          "2": 15
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "require_first_clause": {
+        "always_first": false,
+        "counts": {
+          "0": 9,
+          "1": 15,
+          "2": 26
+        },
+        "positions_seen": [
+          0,
+          1,
+          2
+        ],
+        "single_position": false
+      },
+      "root_cause": {
+        "always_first": false,
+        "counts": {
+          "0": 5,
+          "1": 14,
+          "2": 10,
+          "3": 11,
+          "4": 10
+        },
+        "positions_seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "single_position": false
+      }
+    }
   }
 }
 ```
@@ -208,9 +873,9 @@ This oracle sanity check proves the verifier can score correct repair plans acro
 
 ## 4. Challenge Eval Metrics
 
-Challenge variant implemented: `shuffled_surface_blind`
+Challenge variants implemented: `shuffled_surface_blind`, `combined_blind_shuffle`
 
-The variant shuffles trace spans, rewrites surface wording, and blinds the family label as `agent_reliability_failure`. Real model challenge evaluation is pending.
+`shuffled_surface_blind` shuffles trace spans, rewrites surface wording, and blinds the family label as `agent_reliability_failure`. `combined_blind_shuffle` also changes service/requester/capability names while preserving the same root-cause semantics. Real model challenge evaluation is pending.
 
 Oracle sanity on challenge seeds `1000-1019`:
 
@@ -302,6 +967,96 @@ Oracle sanity on challenge seeds `1000-1019`:
 }
 ```
 
+Oracle sanity on `combined_blind_shuffle` seeds `1000-1019`:
+
+```json
+{
+  "by_family": {
+    "missing_verification": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "permission_scope": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    },
+    "stale_retrieval": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 20,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    }
+  },
+  "by_prompt_variant": {
+    "combined_blind_shuffle": {
+      "certificate_gate_fail_rate": 0.0,
+      "certificate_success_rate": 1.0,
+      "episodes": 60,
+      "evidence_correct_rate": 1.0,
+      "hardcoded_patch_rate": 0.0,
+      "hidden_regression_pass_rate": 1.0,
+      "invalid_json_rate": 0.0,
+      "overall_score": 1.0,
+      "overblocking_rate": 0.0,
+      "patch_blocks_rate": 1.0,
+      "root_cause_correct_rate": 1.0,
+      "valid_preservation_rate": 1.0
+    }
+  },
+  "certificate_gate_fail_rate": 0.0,
+  "certificate_success_rate": 1.0,
+  "episodes": 60,
+  "eval_seeds": "1000-1019",
+  "evidence_correct_rate": 1.0,
+  "families": [
+    "stale_retrieval",
+    "missing_verification",
+    "permission_scope"
+  ],
+  "hardcoded_patch_rate": 0.0,
+  "hidden_regression_pass_rate": 1.0,
+  "invalid_json_rate": 0.0,
+  "mode": "mock",
+  "model": "oracle_correct_solver_for_sanity",
+  "model_label": "mock_oracle",
+  "note": "CPU mock/oracle sanity check, not trained model evidence.",
+  "overall_score": 1.0,
+  "overblocking_rate": 0.0,
+  "patch_blocks_rate": 1.0,
+  "prompt_variant": "combined_blind_shuffle",
+  "root_cause_correct_rate": 1.0,
+  "valid_preservation_rate": 1.0
+}
+```
+
 ## 5. Plots Created
 
 No new trained-model plots were created in this audit because no new real model evaluation was run locally. Existing baseline plots remain valid. Future trained plots should be generated only after real `evaluate_checkpoint.py` outputs exist.
@@ -339,7 +1094,7 @@ hf jobs run \
   -- \
   bash \
   -lc \
-  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && python scripts/self_check.py && python training/evaluate_checkpoint.py --model Qwen/Qwen2.5-0.5B-Instruct --model-label base_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/base_0_5b_standard && python training/train_sft_warmstart.py --confirm-real-training --model Qwen/Qwen2.5-0.5B-Instruct --max-steps 30 --train-seeds 0-5 --eval-seeds 1000-1002 --output-dir outputs/sft_qwen25_05b_json --per-device-train-batch-size 1 --gradient-accumulation-steps 1 --learning-rate 1e-5 --max-completion-length 160 --save-steps 30 && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/sft_0_5b_standard && python training/train_json_grpo.py --confirm-real-training --model outputs/sft_qwen25_05b_json/model --max-steps 10 --train-seeds 0-2 --eval-seeds 1000 --output-dir outputs/grpo_tiny_hf --num-generations 2 --per-device-train-batch-size 2 --gradient-accumulation-steps 1 --learning-rate 5e-6 --max-completion-length 160 --format-reward-weight 0.2 --save-steps 10 && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b --eval-seeds 1000-1049 --output-dir outputs/model_eval/sft_grpo_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_challenge --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_grpo_0_5b_challenge && python scripts/plot_model_eval.py --summary base=outputs/model_eval/base_0_5b_standard/summary.json --summary sft=outputs/model_eval/sft_0_5b_standard/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_standard/summary.json --output-dir outputs/model_eval && echo '=== BASE SUMMARY ===' && cat outputs/model_eval/base_0_5b_standard/summary.json && echo '=== SFT SUMMARY ===' && cat outputs/model_eval/sft_0_5b_standard/summary.json && echo '=== SFT+GRPO SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_standard/summary.json && echo '=== CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_challenge/summary.json"
+  "apt-get update && apt-get install -y git && git clone https://github.com/Kenxpx/Agent-Blackbox-Arena.git && cd Agent-Blackbox-Arena && pip install -e '.[training]' && python scripts/self_check.py && python training/evaluate_checkpoint.py --model Qwen/Qwen2.5-0.5B-Instruct --model-label base_0_5b --eval-seeds 1000-1019 --output-dir outputs/model_eval/base_0_5b_standard && python training/train_sft_warmstart.py --confirm-real-training --model Qwen/Qwen2.5-0.5B-Instruct --max-steps 30 --train-seeds 0-5 --eval-seeds 1000-1002 --output-dir outputs/sft_qwen25_05b_json --per-device-train-batch-size 1 --gradient-accumulation-steps 1 --learning-rate 1e-5 --max-completion-length 160 --save-steps 30 && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b --eval-seeds 1000-1019 --output-dir outputs/model_eval/sft_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b_shuffled_surface_blind --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_0_5b_shuffled_surface_blind && python training/evaluate_checkpoint.py --model outputs/sft_qwen25_05b_json/model --model-label sft_0_5b_combined_blind_shuffle --eval-seeds 1000-1019 --prompt-variant combined_blind_shuffle --output-dir outputs/model_eval/sft_0_5b_combined_blind_shuffle && python training/train_json_grpo.py --confirm-real-training --model outputs/sft_qwen25_05b_json/model --max-steps 10 --train-seeds 0-2 --eval-seeds 1000 --eval-prompt-variant combined_blind_shuffle --output-dir outputs/grpo_tiny_hf --num-generations 2 --per-device-train-batch-size 2 --gradient-accumulation-steps 1 --learning-rate 5e-6 --max-completion-length 160 --format-reward-weight 0.2 --save-steps 10 && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b --eval-seeds 1000-1019 --output-dir outputs/model_eval/sft_grpo_0_5b_standard && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_shuffled_surface_blind --eval-seeds 1000-1019 --prompt-variant shuffled_surface_blind --output-dir outputs/model_eval/sft_grpo_0_5b_shuffled_surface_blind && python training/evaluate_checkpoint.py --model outputs/grpo_tiny_hf/model --model-label sft_grpo_0_5b_combined_blind_shuffle --eval-seeds 1000-1019 --prompt-variant combined_blind_shuffle --output-dir outputs/model_eval/sft_grpo_0_5b_combined_blind_shuffle && python scripts/plot_model_eval.py --summary base=outputs/model_eval/base_0_5b_standard/summary.json --summary sft=outputs/model_eval/sft_0_5b_standard/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_standard/summary.json --output-dir outputs/model_eval && python scripts/plot_model_eval.py --summary sft=outputs/model_eval/sft_0_5b_combined_blind_shuffle/summary.json --summary sft_grpo=outputs/model_eval/sft_grpo_0_5b_combined_blind_shuffle/summary.json --output-dir outputs/model_eval/combined_blind_shuffle && echo '=== BASE SUMMARY ===' && cat outputs/model_eval/base_0_5b_standard/summary.json && echo '=== SFT STANDARD SUMMARY ===' && cat outputs/model_eval/sft_0_5b_standard/summary.json && echo '=== SFT SHUFFLED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_0_5b_shuffled_surface_blind/summary.json && echo '=== SFT COMBINED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_0_5b_combined_blind_shuffle/summary.json && echo '=== SFT+GRPO STANDARD SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_standard/summary.json && echo '=== SFT+GRPO SHUFFLED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_shuffled_surface_blind/summary.json && echo '=== SFT+GRPO COMBINED CHALLENGE SUMMARY ===' && cat outputs/model_eval/sft_grpo_0_5b_combined_blind_shuffle/summary.json"
 
 ```
 

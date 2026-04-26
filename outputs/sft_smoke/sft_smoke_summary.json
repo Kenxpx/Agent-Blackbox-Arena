@@ -2,7 +2,8 @@
   "mode": "smoke",
   "model": "Qwen/Qwen2.5-0.5B-Instruct",
   "records_seen": 3,
-  "max_steps": 50,
+  "max_steps": 20,
   "full_sft_ran": false,
-  "when_to_use": "Use SFT warmstart only if the base model cannot reliably emit strict JSON; it is formatting scaffolding, not the final RL evidence."
+  "dataset_format": "conversational_prompt_completion",
+  "when_to_use": "Use SFT warmstart only if the base model cannot reliably emit strict JSON; it is formatting warmup, not final RL evidence."
 }

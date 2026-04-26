@@ -14,5 +14,15 @@
   ],
   "train_records": 6,
   "eval_records": 3,
+  "prompt_variant": "standard",
+  "challenge_variants": [
+    "standard",
+    "shuffled_spans",
+    "surface_reworded",
+    "blind_family",
+    "surface_reworded_blind_family",
+    "shuffled_surface_blind",
+    "combined_blind_shuffle"
+  ],
   "prompt_leakage_check": "passed"
 }

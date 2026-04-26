@@ -1,13 +1,16 @@
-family,seed,overall_score,certificate_success,hidden_regression_pass_rate,valid_preservation_rate,invalid_json,overblocking,hardcoded_patch,error
-stale_retrieval,1000,1.0,1.0,1.0,1.0,0.0,0.0,0.0,
-stale_retrieval,1000,0.0,0.0,0.0,0.0,1.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
-stale_retrieval,1000,0.13,0.0,0.5,0.0,0.0,1.0,0.0,
-stale_retrieval,1000,0.55,0.0,0.0,0.0,0.0,0.0,1.0,
-missing_verification,1000,1.0,1.0,1.0,1.0,0.0,0.0,0.0,
-missing_verification,1000,0.0,0.0,0.0,0.0,1.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
-missing_verification,1000,0.13,0.0,0.5,0.0,0.0,1.0,0.0,
-missing_verification,1000,0.55,0.0,0.0,0.0,0.0,0.0,1.0,
-permission_scope,1000,1.0,1.0,1.0,1.0,0.0,0.0,0.0,
-permission_scope,1000,0.0,0.0,0.0,0.0,1.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
-permission_scope,1000,0.13,0.0,0.5,0.0,0.0,1.0,0.0,
-permission_scope,1000,0.55,0.0,0.0,0.0,0.0,0.0,1.0,
+family,seed,overall_score,certificate_success,hidden_regression_pass_rate,valid_preservation_rate,evidence_correct,root_cause_correct,patch_blocks_failure,certificate_gate_fail,invalid_json,overblocking,hardcoded_patch,error
+stale_retrieval,1000,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,
+stale_retrieval,1000,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
+stale_retrieval,1000,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,
+stale_retrieval,1000,0.13,0.0,0.5,0.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,
+stale_retrieval,1000,0.55,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,
+missing_verification,1000,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,
+missing_verification,1000,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
+missing_verification,1000,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,
+missing_verification,1000,0.13,0.0,0.5,0.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,
+missing_verification,1000,0.55,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,
+permission_scope,1000,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,
+permission_scope,1000,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
+permission_scope,1000,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,
+permission_scope,1000,0.13,0.0,0.5,0.0,1.0,1.0,1.0,0.0,0.0,1.0,0.0,
+permission_scope,1000,0.55,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,

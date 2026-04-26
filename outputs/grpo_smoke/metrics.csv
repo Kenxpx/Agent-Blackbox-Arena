@@ -1,13 +1,16 @@
-step,family,seed,mode,reward,invalid_json,certificate_success,hidden_regression_pass_rate,valid_preservation_rate,overblocking,hardcoded_patch
-0,stale_retrieval,0,oracle,1.0,0.0,1.0,1.0,1.0,0.0,0.0
-0,stale_retrieval,0,invalid_json,0.0,1.0,0.0,0.0,0.0,0.0,0.0
-0,stale_retrieval,0,block_everything,0.13,0.0,0.0,0.5,0.0,1.0,0.0
-0,stale_retrieval,0,hardcoded,0.55,0.0,0.0,0.0,0.0,0.0,1.0
-1,missing_verification,0,oracle,1.0,0.0,1.0,1.0,1.0,0.0,0.0
-1,missing_verification,0,invalid_json,0.0,1.0,0.0,0.0,0.0,0.0,0.0
-1,missing_verification,0,block_everything,0.13,0.0,0.0,0.5,0.0,1.0,0.0
-1,missing_verification,0,hardcoded,0.55,0.0,0.0,0.0,0.0,0.0,1.0
-2,permission_scope,0,oracle,1.0,0.0,1.0,1.0,1.0,0.0,0.0
-2,permission_scope,0,invalid_json,0.0,1.0,0.0,0.0,0.0,0.0,0.0
-2,permission_scope,0,block_everything,0.13,0.0,0.0,0.5,0.0,1.0,0.0
-2,permission_scope,0,hardcoded,0.55,0.0,0.0,0.0,0.0,0.0,1.0
+step,family,seed,mode,reward,format_reward,training_reward,overall_score,invalid_json,certificate_success,hidden_regression_pass_rate,valid_preservation_rate,evidence_correct,root_cause_correct,patch_blocks_failure,certificate_gate_fail,overblocking,hardcoded_patch,parse_error
+0,stale_retrieval,0,oracle,1.0,1.0,1.2,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,
+0,stale_retrieval,0,invalid_json,0.0,0.15,0.03,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
+0,stale_retrieval,0,wrapped_json,1.0,1.0,1.2,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,extracted_json_object
+0,stale_retrieval,0,block_everything,0.13,1.0,0.33,0.13,0.0,0.0,0.5,0.0,1.0,1.0,1.0,0.0,1.0,0.0,
+0,stale_retrieval,0,hardcoded,0.55,1.0,0.75,0.55,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,1.0,
+1,missing_verification,0,oracle,1.0,1.0,1.2,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,
+1,missing_verification,0,invalid_json,0.0,0.15,0.03,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
+1,missing_verification,0,wrapped_json,1.0,1.0,1.2,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,extracted_json_object
+1,missing_verification,0,block_everything,0.13,1.0,0.33,0.13,0.0,0.0,0.5,0.0,1.0,1.0,1.0,0.0,1.0,0.0,
+1,missing_verification,0,hardcoded,0.55,1.0,0.75,0.55,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,1.0,
+2,permission_scope,0,oracle,1.0,1.0,1.2,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,
+2,permission_scope,0,invalid_json,0.0,0.15,0.03,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,invalid_json: Expecting property name enclosed in double quotes
+2,permission_scope,0,wrapped_json,1.0,1.0,1.2,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,extracted_json_object
+2,permission_scope,0,block_everything,0.13,1.0,0.33,0.13,0.0,0.0,0.5,0.0,1.0,1.0,1.0,0.0,1.0,0.0,
+2,permission_scope,0,hardcoded,0.55,1.0,0.75,0.55,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,1.0,
