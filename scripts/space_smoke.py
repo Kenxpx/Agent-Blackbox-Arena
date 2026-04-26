@@ -7,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from server.app import app  # noqa: F401
+from fastapi.testclient import TestClient
+
+from server.app import app
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
 
 
@@ -20,6 +22,15 @@ CORRECT_PATCH = {
 
 
 def main() -> int:
+    client = TestClient(app)
+    root = client.get("/")
+    assert root.status_code == 200
+    assert "text/html" in root.headers["content-type"]
+    assert "Agent BlackBox Arena" in root.text
+    metadata_response = client.get("/metadata")
+    assert metadata_response.status_code == 200
+    assert metadata_response.json()["name"] == "agent-blackbox-arena"
+
     env = AgentBlackBoxEnvironment()
     metadata = env.metadata()
     assert metadata["name"] == "agent-blackbox-arena"
@@ -41,6 +52,8 @@ def main() -> int:
     assert state["score"] >= 0.9
 
     print("space_smoke: FastAPI app import ok")
+    print("space_smoke: root HTML ok")
+    print("space_smoke: metadata JSON ok")
     print("space_smoke: environment metadata ok")
     print("space_smoke: reset/step/state ok")
     print("space_smoke: stale_retrieval certificate path ok")

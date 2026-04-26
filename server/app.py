@@ -1,18 +1,37 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from agent_blackbox.models import Action
 from server.agent_blackbox_environment import AgentBlackBoxEnvironment
+from server.ui import render_homepage
 
 app = FastAPI(title="Agent BlackBox Arena", version="0.1.0")
 env = AgentBlackBoxEnvironment()
+ROOT = Path(__file__).resolve().parents[1]
+FINAL_PLOTS_DIR = ROOT / "outputs" / "final_plots"
+
+if FINAL_PLOTS_DIR.exists():
+    app.mount("/assets/final_plots", StaticFiles(directory=str(FINAL_PLOTS_DIR)), name="final_plots")
 
 
-@app.get("/")
-def root() -> Dict[str, Any]:
+@app.get("/", response_class=HTMLResponse)
+def root() -> HTMLResponse:
+    return HTMLResponse(render_homepage())
+
+
+@app.get("/metadata")
+def metadata() -> Dict[str, Any]:
+    return env.metadata()
+
+
+@app.get("/api/metadata")
+def api_metadata() -> Dict[str, Any]:
     return env.metadata()
 
 

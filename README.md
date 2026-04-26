@@ -347,13 +347,40 @@ Then use `--model outputs/sft_qwen25_05b_json/model` for the next tiny GRPO run 
 
 HF Space: https://huggingface.co/spaces/Kenxpx/Agent-Blackbox-Arena
 
-The Space runtime is CPU-runnable:
+The Space now opens to a polished judge-facing interactive UI, not raw API JSON. The homepage explains the repair loop, failure families, deterministic verifier, hidden regressions, bounded certificate, real 0.5B training evidence, and the stop-loss decision on 1.5B.
 
+Space routes:
+
+- homepage UI: `/`
+- metadata JSON: `/metadata` and `/api/metadata`
+- OpenEnv-style API: `/reset`, `/step`, `/state`
 - entrypoint: `server.app:app`
 - server: FastAPI/Uvicorn
 - manifest: `openenv.yaml`
 - no GPU required for environment evaluation
 - no live external APIs required
+
+The Space UI includes the real training plots:
+
+- `outputs/final_plots/hf_05b_challenge_curriculum_training_loss_curve.png`
+- `outputs/final_plots/hf_05b_challenge_curriculum_verifier_reward_comparison.png`
+
+Notebook/rerun guide:
+
+- `notebooks/Agent_BlackBox_Arena_Training_Rerun.ipynb`
+
+Evidence package:
+
+```bash
+python scripts/package_submission_evidence.py
+```
+
+Final bounded result:
+
+- final selected trained evidence: 0.5B challenge-curriculum SFT
+- no 1.5B final result is claimed
+- no 4B result is claimed
+- video/blog link: `TODO_ADD_VIDEO_OR_BLOG_LINK`
 
 ## Safety Scope
 
