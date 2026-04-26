@@ -1,0 +1,6 @@
+{
+  "format": "csv/json plus TensorBoard event files when tensorboard is installed",
+  "output_dir": "outputs\\extracted_hf_05b_challenge_curriculum",
+  "run_type": "hf_extracted_05b",
+  "tracking_enabled": true
+}

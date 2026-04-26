@@ -1,0 +1,13 @@
+{
+  "final_05b/certificate_success_rate": 0.9333,
+  "final_05b/evidence_correct_rate": 1.0,
+  "final_05b/hardcoded_patch_rate": 0.0,
+  "final_05b/hidden_regression_pass_rate": 0.9667,
+  "final_05b/invalid_json_rate": 0.0,
+  "final_05b/overall_score": 0.9492,
+  "final_05b/overblocking_rate": 0.05,
+  "final_05b/patch_blocks_rate": 1.0,
+  "final_05b/root_cause_correct_rate": 1.0,
+  "final_05b/step": 4.0,
+  "final_05b/valid_preservation_rate": 0.9333
+}

@@ -1,0 +1,6 @@
+certificate_success_rate,evidence_correct_rate,hardcoded_patch_rate,hidden_regression_pass_rate,invalid_json_rate,overall_score,overblocking_rate,patch_blocks_rate,root_cause_correct_rate,step,valid_preservation_rate
+0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0,0.0
+0.2167,0.2167,0.0,0.975,0.0,0.6753,0.0,0.95,0.95,1,1.0
+0.1111,0.1111,0.0,1.0,0.0,0.6089,0.0,1.0,0.7778,2,1.0
+0.1833,0.1833,0.0,0.975,0.0,0.671,0.0,0.9667,0.9833,3,0.9833
+0.9333,1.0,0.0,0.9667,0.0,0.9492,0.05,1.0,1.0,4,0.9333
